@@ -74,6 +74,16 @@ No build step, no dependencies: download [`index.html`](index.html) (open it on 
 - The capture bookmarklet works on most sites; sites with a strict Content Security Policy block the injected capture script.
 - Clipboard copy on export needs HTTPS — the live link above has it; the PNG download works everywhere, including straight from disk.
 
+## Hand it to your AI
+
+Ready-made prompts — one-click copies live in the panel beside each bookmarklet:
+
+> **With an Export Package:** "I'm attaching a MockuRATOR package. Read report.md first — every mark and issue is explained there, with context about where each screenshot came from. Then study board.png. Address each issue one by one and tell me exactly what you changed, per issue."
+
+> **With a MockuLog file:** "Attached is a console/network log captured with MockuLog. List every distinct error, its likely root cause, and the exact fix — ordered by severity. Ignore warnings unless they explain an error."
+
+> **With both together:** "This zip holds my annotated screenshot, my notes, and a console log. Cross-reference them: which of the visual issues I marked are explained by errors in the log? Then fix each, telling me what you changed."
+
 ## The family
 
 <p align="center">
@@ -89,6 +99,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.17.2** — mockulog.js is a real link in the panel; one-click "Copy AI prompt" buttons beside both bookmarklets; hand-off prompts in the ? overlay and README
 - **1.17.1** — Text polish: the entry box is WYSIWYG (true size and colour, aligned where the label lands), new labels auto-select, double-click any label to edit it in place, double-click empty canvas for a quick label
 - **1.17.0** — Text labels are first-class items: selectable, draggable, resizable, recolourable, editable, listed in Items
 - **1.16.3** — Text tool fixed: the browser was blurring the label input the instant it opened; typing also now commits on click-away instead of being discarded
