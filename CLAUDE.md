@@ -32,7 +32,8 @@ pieces, annotating them, and exporting a PNG. Live at https://pierrehunt.github.
 ## Testing
 
 - Open `index.html` in a browser: paste an image, slice (S), move (V), annotate,
-  Export PNG, Save/Load JSON. Check the console shows the new version line.
+  Export PNG, Export Package (unzip it — expect board.png, report.md, board.json),
+  Save/Load JSON. Check the console shows the new version line.
 - Keyboard shortcuts and the side-panel flip/resize behavior must keep working.
 
 ## Git conventions
