@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MockuRATOR — slice screenshots apart, annotate, export</title>
+<meta name="description" content="Slice screenshots into movable pieces, annotate them, and export a clean PNG for bug reports and change requests. A single HTML file — everything runs in your browser, nothing is uploaded.">
+<meta property="og:title" content="MockuRATOR">
+<meta property="og:description" content="Slice screenshots apart, drag the pieces, annotate, export — a single HTML file that runs entirely in your browser.">
+<meta property="og:url" content="https://pierrehunt.github.io/MockuRATOR/">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%2323221c'/%3E%3Cpath d='M22 22h56v30L52 78H22Z' fill='%23e0342b'/%3E%3C/svg%3E">
 <style>
 :root{
   --ink:#23221c; --ink2:#33322a; --paper:#e9e6dd; --mat:#e2dfd4;
@@ -124,7 +130,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
   <input id="textEntry" placeholder="Type, then Enter">
   <div id="notesPanel">
     <h3>Notes</h3>
-    <textarea id="notes" placeholder="e.g. v2.77.26 — CONTACT card overlaps sidebar below 1280px; WhatsApp field loses value on save."></textarea>
+    <textarea id="notes" placeholder="e.g. v1.4.2 — Contact card overlaps the sidebar below 1280 px; phone field loses its value on save."></textarea>
     <div class="tip">Saved inside the JSON and printed under the exported PNG.</div>
   </div>
   <div id="toast"></div>

@@ -1,11 +1,16 @@
 # MockuRATOR
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
+![Single file](https://img.shields.io/badge/single%20file-%E2%89%8826%20KB-blue)
+![Dependencies](https://img.shields.io/badge/dependencies-none-lightgrey)
+
 ✂️ Slice screenshots into pieces, drag them apart, annotate, and export — a single HTML file that runs entirely in your browser.
 
 **Use it live:** https://pierrehunt.github.io/MockuRATOR/ — no install, no signup, nothing to configure.
 
-<!-- Record a short demo with ScreenToGif, save it as demo.gif in this repo, and it will appear here: -->
-![Demo](demo.gif)
+<!-- Demo: record ~5 seconds with ScreenToGif (paste → slice → drag → arrow → export),
+     upload it to this repo as demo.gif, then delete this comment block and uncomment the line below. -->
+<!-- ![Demo](demo.gif) -->
 
 ## Why
 
@@ -20,6 +25,10 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Export PNG** — auto-named `project-date.png`, your notes printed underneath, and copied to the clipboard so you can paste it straight into a chat
 - **Save / Load JSON** — the whole board (screenshots, slices, annotations, notes) in one file per project, so you can reopen it against the next build and track regressions
 - **100% client-side** — your screenshots never leave your machine. No server, no accounts, no tracking.
+
+## Run it locally
+
+No build step, no dependencies: download [`index.html`](index.html) (open it on GitHub → **Download raw file**) and double-click it. It works offline.
 
 ## Shortcuts
 
@@ -43,7 +52,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 ## Notes
 
 - Desktop-first: built for mouse and keyboard. It opens on phones, but pinch-zoom isn't wired up.
-- Works from a plain double-click on the file (`file://`). Clipboard copy on export needs HTTPS — the live link above has it; the PNG download works everywhere.
+- Clipboard copy on export needs HTTPS — the live link above has it; the PNG download works everywhere, including straight from disk.
 
 ## License
 
