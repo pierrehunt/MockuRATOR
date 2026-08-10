@@ -67,9 +67,41 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 #dropHint{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;
   align-items:center;justify-content:center;pointer-events:none;color:var(--muted);text-align:center;padding:20px}
 #dropHint .big{font-size:20px;font-weight:600;color:var(--ink2)}
-#hintBar{position:absolute;left:10px;bottom:10px;font-size:12px;color:var(--muted);
-  background:rgba(251,250,247,.85);border:1px solid var(--line);border-radius:6px;
-  padding:4px 10px;pointer-events:none}
+#hintBar{position:absolute;left:10px;bottom:10px;font-size:12.5px;color:#efede4;
+  background:rgba(35,34,28,.92);border:1px solid #4a4940;border-radius:8px;
+  padding:6px 12px;pointer-events:none;display:flex;gap:6px;align-items:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.18)}
+#hintBar b{color:#fff}
+#hintBar .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+  background:#3d3c33;border:1px solid #55534a;border-radius:4px;padding:0 5px;color:#efede4}
+#helpBtn{position:absolute;right:12px;bottom:10px;width:30px;height:30px;border-radius:50%;
+  border:1px solid #4a4940;background:rgba(35,34,28,.92);color:#efede4;font-weight:700;
+  cursor:pointer;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.18);z-index:15}
+#helpBtn:hover{background:var(--accent);border-color:var(--accent)}
+#helpOverlay{position:absolute;inset:0;background:rgba(20,19,15,.55);display:none;
+  align-items:center;justify-content:center;z-index:30;padding:20px}
+#helpCard{background:var(--white);border:1px solid var(--line);border-radius:14px;
+  max-width:560px;width:100%;max-height:86%;overflow:auto;padding:22px 24px;
+  box-shadow:0 24px 60px rgba(0,0,0,.35)}
+#helpCard h2{margin:0 0 4px;font-size:19px}
+#helpCard .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+#helpCard h4{margin:16px 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#helpCard table{width:100%;border-collapse:collapse;font-size:14px}
+#helpCard td{padding:5px 0;vertical-align:top}
+#helpCard td.k{width:150px;white-space:nowrap}
+#helpCard .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+  background:#f0eee6;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
+#helpClose{float:right;border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:4px 12px;cursor:pointer;color:var(--ink2)}
+#helpClose:hover{background:#f0eee6}
+/* mark editor */
+#markCap{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#fff}
+.markRow{display:flex;gap:8px;margin:10px 0 4px}
+.markRow .msw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.markRow .msw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--white) inset}
+.chk2{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);cursor:pointer;margin:8px 0}
+.markRow2{display:flex;gap:8px;margin-top:8px}
+.mini.danger:hover{background:#f2e2e0;color:var(--red);border-color:#e6b8b3}
 #textEntry{position:absolute;display:none;min-width:180px;border:2px solid var(--red);
   border-radius:4px;padding:4px 8px;background:#fff;font-weight:600}
 #toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
@@ -170,13 +202,58 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
       <div>Then: <b>S</b> — drag a box around each section to cut it out &nbsp;·&nbsp; <b>V</b> — drag the pieces apart &nbsp;·&nbsp; annotate &nbsp;·&nbsp; Export PNG</div>
       <div>Save JSON keeps the whole board so you can reopen it when checking the next build for regressions.</div>
     </div>
-    <div id="hintBar">Wheel: zoom · Space-drag: pan · Move (V) + click a box/arrow: caption it · Del: remove · Ctrl+Z: undo</div>
+    <div id="hintBar"><b>S</b> slice · <b>V</b> move &amp; edit marks · <span class="kbd">?</span> all shortcuts</div>
+    <button id="helpBtn" title="Keyboard shortcuts (press ?)">?</button>
+    <div id="helpOverlay">
+      <div id="helpCard">
+        <button id="helpClose">Close</button>
+        <h2>MockuRATOR shortcuts</h2>
+        <p class="sub">Slice it. Mark it. Send it.</p>
+        <h4>Tools</h4>
+        <table>
+          <tr><td class="k"><span class="kbd">S</span></td><td>Slice — drag a box around a section to cut it out</td></tr>
+          <tr><td class="k"><span class="kbd">V</span></td><td>Move — drag pieces; click a box or arrow to edit it in the panel</td></tr>
+          <tr><td class="k"><span class="kbd">H</span> / hold <span class="kbd">Space</span></td><td>Pan the view</td></tr>
+          <tr><td class="k"><span class="kbd">B</span> / <span class="kbd">A</span> / <span class="kbd">P</span> / <span class="kbd">T</span></td><td>Box / Arrow / Pen / Text</td></tr>
+        </table>
+        <h4>Marks</h4>
+        <table>
+          <tr><td class="k">Click a mark (in Move)</td><td>Caption it, recolour it, toggle box fill — in the Selected mark panel</td></tr>
+          <tr><td class="k">Fill the box</td><td>Translucent fill for highlighting a whole region</td></tr>
+        </table>
+        <h4>Canvas</h4>
+        <table>
+          <tr><td class="k">Mouse wheel</td><td>Zoom</td></tr>
+          <tr><td class="k">Space-drag</td><td>Pan</td></tr>
+          <tr><td class="k"><span class="kbd">Del</span></td><td>Delete selected piece</td></tr>
+          <tr><td class="k"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></td><td>Undo</td></tr>
+          <tr><td class="k"><span class="kbd">Ctrl</span>+<span class="kbd">D</span></td><td>Duplicate selected piece</td></tr>
+        </table>
+        <h4>Export</h4>
+        <table>
+          <tr><td class="k">Export PNG</td><td>The annotated board as an image, copied to clipboard</td></tr>
+          <tr><td class="k">Export Package</td><td>ZIP: PNG + an AI-readable report.md + reload JSON</td></tr>
+        </table>
+      </div>
+    </div>
     <input id="textEntry" placeholder="Type, then Enter">
     <div id="toast"></div>
   </div>
 
   <div class="divider" id="divR"></div>
   <aside id="railR" class="rail">
+    <div class="railSec" id="secMark" style="display:none">
+      <h3>Selected mark <button class="flip" data-sec="secMark" title="Move to the other side">⇄</button></h3>
+      <input id="markCap" placeholder="Caption this mark…" autocomplete="off">
+      <div class="markRow" id="markColors"></div>
+      <label class="chk2" id="markFillWrap"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
+      <div class="markRow2">
+        <button class="mini" id="markDup">Duplicate</button>
+        <button class="mini danger" id="markDel">Delete mark</button>
+      </div>
+      <div class="railTip small">Tip: switch to Move (V) and click any box or arrow to edit it here.</div>
+    </div>
+
     <div class="railSec" id="secNotes">
       <h3>Notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
       <textarea id="notes" placeholder="e.g. v1.4.2 — Contact card overlaps the sidebar below 1280 px; phone field loses its value on save."></textarea>
@@ -205,7 +282,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.7.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.8.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -317,7 +394,10 @@ function drawCaption(g,a){
 }
 function drawAnno(g,a){
   g.strokeStyle=a.c; g.fillStyle=a.c; g.lineWidth=a.lw||3; g.lineJoin='round'; g.lineCap='round';
-  if(a.t==='box'){ g.strokeRect(a.x,a.y,a.w,a.h); }
+  if(a.t==='box'){
+    if(a.fill){ g.globalAlpha=0.22; g.fillStyle=a.c; g.fillRect(a.x,a.y,a.w,a.h); g.globalAlpha=1; g.fillStyle=a.c; }
+    g.strokeRect(a.x,a.y,a.w,a.h);
+  }
   else if(a.t==='arrow'){
     g.beginPath(); g.moveTo(a.x1,a.y1); g.lineTo(a.x2,a.y2); g.stroke();
     const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1), hl=(a.lw||3)*4+8;
@@ -341,16 +421,17 @@ function drawAnno(g,a){
   if((a.t==='box'||a.t==='arrow')&&a.cap) drawCaption(g,a);
 }
 function hitAnno(p){
-  // topmost box or arrow near the point (for caption editing in Move mode)
+  // topmost box or arrow near the point (for editing in Move mode)
   for(let i=annos.length-1;i>=0;i--){
     const a=annos[i];
     if(a.t==='box'){
       const near=8/view.s;
+      const inside=(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h);
+      if(a.fill&&inside)return i;                 // filled boxes: whole area clickable
       const onEdge=(p.x>=a.x-near&&p.x<=a.x+a.w+near&&p.y>=a.y-near&&p.y<=a.y+a.h+near)&&
         !(p.x>a.x+near&&p.x<a.x+a.w-near&&p.y>a.y+near&&p.y<a.y+a.h-near);
       if(onEdge)return i;
     }else if(a.t==='arrow'){
-      // distance from point to segment
       const dx=a.x2-a.x1, dy=a.y2-a.y1, L2=dx*dx+dy*dy||1;
       let t=((p.x-a.x1)*dx+(p.y-a.y1)*dy)/L2; t=Math.max(0,Math.min(1,t));
       const cx=a.x1+t*dx, cy=a.y1+t*dy;
@@ -513,7 +594,8 @@ canvas.addEventListener('pointerdown',e=>{
       drag={kind:'moveSlice',i:selected,dx:p.x-s.x,dy:p.y-s.y};
     }else{
       const ai=hitAnno(p);
-      if(ai>=0){ drag=null; openCaption(ai,e); render(); refreshPieces(); return; }
+      if(ai>=0){ drag=null; selectMark(ai); render(); refreshPieces(); return; }
+      selectMark(-1);
     }
     render(); refreshPieces(); return;
   }
@@ -539,8 +621,8 @@ canvas.addEventListener('pointerup',()=>{
   if(d.kind==='pan'){ setTool(tool); render(); return; }
   if(d.kind==='moveSlice'){ sync(); return; }
   if(d.kind==='slice'){ const r=norm(d.a,d.b); if(r.w>6&&r.h>6)makeSlice(r); }
-  else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){annos.push({t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
-  else if(d.kind==='arrow'){ if(Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y)>6){annos.push({t:'arrow',x1:d.a.x,y1:d.a.y,x2:d.b.x,y2:d.b.y,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
+  else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){annos.push({t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW(),fill:fillDefault});undoStack.push({k:'anno'});selectMark(annos.length-1);} }
+  else if(d.kind==='arrow'){ if(Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y)>6){annos.push({t:'arrow',x1:d.a.x,y1:d.a.y,x2:d.b.x,y2:d.b.y,c:color,lw:strokeW()});undoStack.push({k:'anno'});selectMark(annos.length-1);} }
   else if(d.kind==='pen'){ if(d.pts.length>1){annos.push({t:'pen',pts:d.pts,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
   sync();
 });
@@ -554,25 +636,45 @@ canvas.addEventListener('wheel',e=>{
   render();
 },{passive:false});
 
-/* ---------------- caption editor (reuses the text input) ---------------- */
-let capIndex=-1;
-function openCaption(ai,e){
-  const a=annos[ai]; if(!a)return;
-  capIndex=ai; pendingText=null;
-  const r=stage.getBoundingClientRect();
-  textEntry.style.left=(e.clientX-r.left)+'px';
-  textEntry.style.top=(e.clientY-r.top-16)+'px';
-  textEntry.style.display='block';
-  textEntry.value=a.cap||'';
-  textEntry.placeholder='Caption this mark, Enter to save';
-  textEntry.focus(); textEntry.select();
+/* ---------------- mark editor (panel: caption + colour + fill) ---------------- */
+let markIndex=-1, fillDefault=false;
+const MARK_COLORS=['#e0342b','#f59e0b','#2563eb','#16a34a','#111827'];
+// build the colour swatches once
+(function(){
+  const wrap=$('markColors');
+  MARK_COLORS.forEach(c=>{
+    const b=document.createElement('button'); b.className='msw'; b.style.background=c; b.dataset.c=c;
+    b.title=colorName(c);
+    b.onclick=()=>{ if(markIndex<0)return; const a=annos[markIndex]; undoStack.push({k:'markedit',i:markIndex,prev:{...a}}); a.c=c; syncMarkEditor(); sync(); };
+    wrap.appendChild(b);
+  });
+})();
+function selectMark(i){
+  markIndex=i;
+  const sec=$('secMark');
+  if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ sec.style.display='none'; markIndex=-1; return; }
+  sec.style.display='flex'; sec.style.flexDirection='column';
+  syncMarkEditor();
+  $('markCap').focus();
 }
-function commitCaption(){
-  if(capIndex<0)return;
-  const a=annos[capIndex]; const v=textEntry.value.trim();
-  if(a){ const prev=a.cap; if(v)a.cap=v; else delete a.cap; undoStack.push({k:'caption',i:capIndex,prev}); }
-  capIndex=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; sync();
+function syncMarkEditor(){
+  const a=annos[markIndex]; if(!a)return;
+  $('markCap').value=a.cap||'';
+  [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===a.c));
+  const fw=$('markFillWrap');
+  fw.style.display=a.t==='box'?'flex':'none';
+  $('markFill').checked=!!a.fill;
 }
+$('markCap').addEventListener('input',()=>{ if(markIndex<0)return; const a=annos[markIndex];
+  if($('markCap').value.trim())a.cap=$('markCap').value.trim(); else delete a.cap; render(); scheduleAutosave(); });
+$('markFill').addEventListener('change',()=>{ if(markIndex<0)return; const a=annos[markIndex];
+  undoStack.push({k:'markedit',i:markIndex,prev:{...a}}); a.fill=$('markFill').checked; fillDefault=a.fill; sync(); });
+$('markDup').onclick=()=>{ if(markIndex<0)return; const a=annos[markIndex];
+  const copy=JSON.parse(JSON.stringify(a));
+  if(copy.t==='box'){copy.x+=24;copy.y+=24;} else {copy.x1+=24;copy.y1+=24;copy.x2+=24;copy.y2+=24;}
+  annos.push(copy); undoStack.push({k:'anno'}); selectMark(annos.length-1); sync(); };
+$('markDel').onclick=()=>{ if(markIndex<0)return; const rm=annos.splice(markIndex,1)[0];
+  undoStack.push({k:'delAnno',i:markIndex,a:rm}); selectMark(-1); sync(); };
 
 /* ---------------- text tool ---------------- */
 const textEntry=$('textEntry');
@@ -584,10 +686,9 @@ function openText(e,p){
   textEntry.style.display='block';
   textEntry.value=''; textEntry.focus();
 }
-function cancelText(){ pendingText=null; capIndex=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; }
+function cancelText(){ pendingText=null; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; }
 textEntry.addEventListener('keydown',e=>{
   if(e.key==='Enter'){
-    if(capIndex>=0){ commitCaption(); e.stopPropagation(); return; }
     const v=textEntry.value.trim();
     if(v&&pendingText){
       annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
@@ -598,17 +699,18 @@ textEntry.addEventListener('keydown',e=>{
   if(e.key==='Escape')cancelText();
   e.stopPropagation();
 });
-textEntry.addEventListener('blur',()=>{ if(capIndex>=0)commitCaption(); else cancelText(); });
+textEntry.addEventListener('blur',cancelText);
 
 /* ---------------- edit ops ---------------- */
 function undo(){
   const u=undoStack.pop(); if(!u)return;
   if(u.k==='slice')slices.pop();
-  else if(u.k==='anno')annos.pop();
+  else if(u.k==='anno'){ annos.pop(); if(markIndex>=annos.length)selectMark(-1); }
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
+  else if(u.k==='delAnno'){ annos.splice(u.i,0,u.a); }
   else if(u.k==='clear')annos=u.prev;
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
-  else if(u.k==='caption'){ const a=annos[u.i]; if(a){ if(u.prev===undefined)delete a.cap; else a.cap=u.prev; } }
+  else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(markIndex===u.i)syncMarkEditor(); }
   selected=-1; sync();
 }
 function delSelected(){
@@ -666,8 +768,8 @@ if(store.ok){
     }catch(e){}
   });
 }
-const SECS=['secNotes','secPieces','secBm','secRecent'];
-const DEFAULT_SIDE={secNotes:'L',secPieces:'L',secBm:'L',secRecent:'L'};
+const SECS=['secMark','secNotes','secPieces','secBm','secRecent'];
+const DEFAULT_SIDE={secMark:'L',secNotes:'L',secPieces:'L',secBm:'L',secRecent:'L'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
@@ -691,10 +793,18 @@ $('btnPanel').onclick=()=>{
 $('notes').addEventListener('input',scheduleAutosave);
 $('projectName').addEventListener('input',scheduleAutosave);
 
+/* ---------------- help overlay ---------------- */
+function showHelp(v){ $('helpOverlay').style.display=v?'flex':'none'; }
+$('helpBtn').onclick=()=>showHelp(true);
+$('helpClose').onclick=()=>showHelp(false);
+$('helpOverlay').addEventListener('click',e=>{ if(e.target===$('helpOverlay'))showHelp(false); });
+
 /* ---------------- keyboard ---------------- */
 window.addEventListener('keydown',e=>{
   const inField=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if(e.key==='Escape'&&$('helpOverlay').style.display==='flex'){showHelp(false);return;}
   if(inField)return;
+  if(e.key==='?'||(e.shiftKey&&e.key==='/')){showHelp(true);return;}
   if(e.code==='Space'){spaceDown=true;e.preventDefault();return;}
   const map={v:'move',s:'slice',h:'pan',b:'box',a:'arrow',p:'pen',t:'text'};
   const k=e.key.toLowerCase();
@@ -880,7 +990,7 @@ function buildReport(){
   annos.forEach(a=>{
     if(a.t==='box'||a.t==='arrow'){
       n++;
-      const kind=a.t==='box'?'Box':'Arrow';
+      const kind=a.t==='box'?(a.fill?'Filled region':'Box'):'Arrow';
       const col=colorName(a.c);
       if(a.cap){ hadCaption=true; L.push('- **'+kind+' '+n+'** ('+col+'): '+a.cap); }
       else L.push('- '+kind+' '+n+' ('+col+') — no caption');
