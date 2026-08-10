@@ -362,7 +362,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.16.1', APP_BUILD='2026-08-10';
+const APP_VERSION='1.16.3', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -628,7 +628,7 @@ function refreshPieces(){
     x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
       if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
-      msel=[]; selectPiece(i); centerOn(s); render(); refreshPieces();
+      msel=[]; setTool('move'); selectPiece(i); centerOn(s); render(); refreshPieces();
     };
     item.append(th,info,x); return item;
   };
@@ -648,7 +648,7 @@ function refreshPieces(){
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
       if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
-      msel=[]; selectMark(i); centerOnAnno(a); render(); refreshPieces();
+      msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces();
     };
     item.append(dot,info,x); return item;
   };
@@ -775,21 +775,24 @@ canvas.addEventListener('pointerdown',e=>{
     canvas.style.cursor='grabbing'; return;
   }
   if(e.button!==0)return;
-  if(tool==='move'){
-    // transform handles on the selected mark take priority
-    if(sel.kind==='mark'&&annos[sel.i]){
-      const a=annos[sel.i], hr=20/view.s;
-      if(a.t==='box'){
-        const corners={nw:[a.x,a.y],ne:[a.x+a.w,a.y],sw:[a.x,a.y+a.h],se:[a.x+a.w,a.y+a.h]};
-        for(const k in corners){
-          if(Math.hypot(p.x-corners[k][0],p.y-corners[k][1])<hr){
-            drag={kind:'resizeBox',i:sel.i,corner:k,orig:{...a}}; return; }
-        }
-      }else if(a.t==='arrow'){
-        if(Math.hypot(p.x-a.x1,p.y-a.y1)<hr){drag={kind:'arrowEnd',i:sel.i,end:1,orig:{...a}};return;}
-        if(Math.hypot(p.x-a.x2,p.y-a.y2)<hr){drag={kind:'arrowEnd',i:sel.i,end:2,orig:{...a}};return;}
+  // transform handles on the selected mark are live in EVERY tool — visible means grabbable
+  if(sel.kind==='mark'&&annos[sel.i]){
+    const a=annos[sel.i], hr=20/view.s;
+    if(a.t==='box'){
+      const corners={nw:[a.x,a.y],ne:[a.x+a.w,a.y],sw:[a.x,a.y+a.h],se:[a.x+a.w,a.y+a.h]};
+      for(const k in corners){
+        if(Math.hypot(p.x-corners[k][0],p.y-corners[k][1])<hr){
+          drag={kind:'resizeBox',i:sel.i,corner:k,orig:{...a}}; return; }
       }
-      // a selected box is body-draggable even when unfilled
+    }else if(a.t==='arrow'){
+      if(Math.hypot(p.x-a.x1,p.y-a.y1)<hr){drag={kind:'arrowEnd',i:sel.i,end:1,orig:{...a}};return;}
+      if(Math.hypot(p.x-a.x2,p.y-a.y2)<hr){drag={kind:'arrowEnd',i:sel.i,end:2,orig:{...a}};return;}
+    }
+  }
+  if(tool==='move'){
+    // a selected box is body-draggable even when unfilled
+    if(sel.kind==='mark'&&annos[sel.i]){
+      const a=annos[sel.i];
       if(a.t==='box'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
         drag={kind:'moveAnno',i:sel.i,start:p,orig:{...a},moved:false}; return;
       }
@@ -812,17 +815,19 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(tool==='slice'||tool==='box'||tool==='arrow'){ drag={kind:tool,a:p,b:p}; return; }
   if(tool==='pen'){ drag={kind:'pen',pts:[p]}; return; }
-  if(tool==='text'){ openText(e,p); return; }
+  if(tool==='text'){ e.preventDefault(); openText(e,p); return; }
 });
 canvas.addEventListener('pointermove',e=>{
   const p=toWorld(e);
   if(!drag){
-    if(tool==='move'&&sel.kind==='mark'&&annos[sel.i]){
-      const a=annos[sel.i], hr=20/view.s; let cur='default';
+    if(sel.kind==='mark'&&annos[sel.i]){
+      const a=annos[sel.i], hr=20/view.s;
+      const toolCur = tool==='pan'?'grab' : tool==='move'?'default' : tool==='text'?'text':'crosshair';
+      let cur=toolCur;
       if(a.t==='box'){
         if(Math.hypot(p.x-a.x,p.y-a.y)<hr||Math.hypot(p.x-(a.x+a.w),p.y-(a.y+a.h))<hr)cur='nwse-resize';
         else if(Math.hypot(p.x-(a.x+a.w),p.y-a.y)<hr||Math.hypot(p.x-a.x,p.y-(a.y+a.h))<hr)cur='nesw-resize';
-        else if(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h)cur='move';
+        else if(tool==='move'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h)cur='move';
       }else if(a.t==='arrow'){
         if(Math.hypot(p.x-a.x1,p.y-a.y1)<hr||Math.hypot(p.x-a.x2,p.y-a.y2)<hr)cur='grab';
       }
@@ -1058,7 +1063,8 @@ function openText(e,p){
   textEntry.style.left=(e.clientX-r.left)+'px';
   textEntry.style.top=(e.clientY-r.top-16)+'px';
   textEntry.style.display='block';
-  textEntry.value=''; textEntry.focus();
+  textEntry.value='';
+  setTimeout(()=>{ textEntry.focus(); },0);
 }
 function cancelText(){ pendingText=null; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; }
 textEntry.addEventListener('keydown',e=>{
@@ -1073,7 +1079,14 @@ textEntry.addEventListener('keydown',e=>{
   if(e.key==='Escape')cancelText();
   e.stopPropagation();
 });
-textEntry.addEventListener('blur',cancelText);
+textEntry.addEventListener('blur',()=>{
+  const v=textEntry.value.trim();
+  if(v&&pendingText){
+    annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
+    undoStack.push({k:'anno'});
+    cancelText(); sync();
+  }else cancelText();
+});
 
 /* ---------------- edit ops ---------------- */
 function undo(){

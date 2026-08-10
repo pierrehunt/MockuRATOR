@@ -89,6 +89,8 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.16.3** — Text tool fixed: the browser was blurring the label input the instant it opened; typing also now commits on click-away instead of being discarded
+- **1.16.2** — Handles are live in every tool (visible means grabbable), hover cursors everywhere, and selecting from Items switches to Move
 - **1.16.1** — Resize handles now actually grabbable: wide hit radius, bigger handles, hover cursors; family logos for MockuGrab and MockuLog
 - **1.16.0** — Mark transforms: move, corner-resize, arrow re-aim and Reverse; bookmarklets now default to the right panel
 - **1.15.0** — 🪲 MockuLog: console/network recorder bookmarklet plus drop-in mockulog.js; log files attach to the board and ship inside the Export Package
