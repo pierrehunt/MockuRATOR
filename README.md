@@ -26,6 +26,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
 - **Annotate** with callout boxes, arrows, freehand pen, and text labels in five colours
+- **Caption any mark** — switch to Move (V) and click a box or arrow to attach a short caption to it. Captions render on the board and are listed, per mark, in the exported report — so a red box and a blue box can each say exactly what they mean
 - **Export PNG** — auto-named `project-date.png`, your notes printed underneath, and copied to the clipboard so you can paste it straight into a chat
 - **Export Package** — one click bundles a `.zip` (named `project-date.zip`) containing the annotated **board.png**, a readable **report.md** the AI can parse (project, notes, and every text label you placed), and the reload **board.json**. Built with a tiny dependency-free ZIP writer — no libraries, still one file
 - **Save / Load JSON** — the whole board (screenshots, slices, annotations, notes) in one file per project, so you can reopen it against the next build and track regressions
@@ -69,6 +70,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 ## Changelog
 
 - **1.5.2** — Lightweight social-preview card (WhatsApp and friends reject large preview images)
+- **1.7.0** — Per-mark captions: click a box or arrow in Move mode to caption it; captions render on the board and group by mark in the report
 - **1.6.0** — Export Package: one-click ZIP with the annotated PNG, an AI-readable report.md, and the reload JSON (dependency-free ZIP writer)
 - **1.5.2** — Lightweight social-preview card for link sharing
 - **1.5.1** — Credits: built with Anthropic's Claude; logo artwork by ChatGPT

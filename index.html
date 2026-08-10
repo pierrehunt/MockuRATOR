@@ -170,7 +170,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
       <div>Then: <b>S</b> — drag a box around each section to cut it out &nbsp;·&nbsp; <b>V</b> — drag the pieces apart &nbsp;·&nbsp; annotate &nbsp;·&nbsp; Export PNG</div>
       <div>Save JSON keeps the whole board so you can reopen it when checking the next build for regressions.</div>
     </div>
-    <div id="hintBar">Wheel: zoom · Space-drag: pan · Del: remove piece · Ctrl+Z: undo · Ctrl+D: duplicate</div>
+    <div id="hintBar">Wheel: zoom · Space-drag: pan · Move (V) + click a box/arrow: caption it · Del: remove · Ctrl+Z: undo</div>
     <input id="textEntry" placeholder="Type, then Enter">
     <div id="toast"></div>
   </div>
@@ -205,7 +205,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.6.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.7.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -294,6 +294,27 @@ function norm(a,b){
 }
 
 /* ---------------- rendering ---------------- */
+function annoAnchor(a){
+  if(a.t==='box')return {x:a.x, y:a.y};
+  if(a.t==='arrow')return {x:a.x1, y:a.y1};
+  return {x:a.x, y:a.y};
+}
+function drawCaption(g,a){
+  if(!a.cap)return;
+  const fs=Math.max(13, (a.lw||3)*4.5);
+  g.font=`600 ${fs}px ui-sans-serif,system-ui,sans-serif`;
+  const an=annoAnchor(a);
+  const padX=fs*0.5, padY=fs*0.35, w=g.measureText(a.cap).width+padX*2, h=fs+padY*2;
+  let x=an.x, y=an.y-h-4;                 // sit above the anchor
+  const rr=Math.min(6,h/2);
+  g.fillStyle=a.c;
+  g.beginPath();
+  g.moveTo(x+rr,y); g.arcTo(x+w,y,x+w,y+h,rr); g.arcTo(x+w,y+h,x,y+h,rr);
+  g.arcTo(x,y+h,x,y,rr); g.arcTo(x,y,x+w,y,rr); g.closePath(); g.fill();
+  g.fillStyle='#fff'; g.textBaseline='middle';
+  g.fillText(a.cap, x+padX, y+h/2);
+  g.textBaseline='alphabetic';
+}
 function drawAnno(g,a){
   g.strokeStyle=a.c; g.fillStyle=a.c; g.lineWidth=a.lw||3; g.lineJoin='round'; g.lineCap='round';
   if(a.t==='box'){ g.strokeRect(a.x,a.y,a.w,a.h); }
@@ -317,6 +338,26 @@ function drawAnno(g,a){
     g.font=`600 ${a.size}px ui-sans-serif,system-ui,sans-serif`;
     g.fillText(a.text,a.x,a.y);
   }
+  if((a.t==='box'||a.t==='arrow')&&a.cap) drawCaption(g,a);
+}
+function hitAnno(p){
+  // topmost box or arrow near the point (for caption editing in Move mode)
+  for(let i=annos.length-1;i>=0;i--){
+    const a=annos[i];
+    if(a.t==='box'){
+      const near=8/view.s;
+      const onEdge=(p.x>=a.x-near&&p.x<=a.x+a.w+near&&p.y>=a.y-near&&p.y<=a.y+a.h+near)&&
+        !(p.x>a.x+near&&p.x<a.x+a.w-near&&p.y>a.y+near&&p.y<a.y+a.h-near);
+      if(onEdge)return i;
+    }else if(a.t==='arrow'){
+      // distance from point to segment
+      const dx=a.x2-a.x1, dy=a.y2-a.y1, L2=dx*dx+dy*dy||1;
+      let t=((p.x-a.x1)*dx+(p.y-a.y1)*dy)/L2; t=Math.max(0,Math.min(1,t));
+      const cx=a.x1+t*dx, cy=a.y1+t*dy;
+      if(Math.hypot(p.x-cx,p.y-cy)<10/view.s)return i;
+    }
+  }
+  return -1;
 }
 
 function render(){
@@ -470,6 +511,9 @@ canvas.addEventListener('pointerdown',e=>{
     if(i>=0){
       const s=slices.splice(i,1)[0]; slices.push(s); selected=slices.length-1;
       drag={kind:'moveSlice',i:selected,dx:p.x-s.x,dy:p.y-s.y};
+    }else{
+      const ai=hitAnno(p);
+      if(ai>=0){ drag=null; openCaption(ai,e); render(); refreshPieces(); return; }
     }
     render(); refreshPieces(); return;
   }
@@ -510,6 +554,26 @@ canvas.addEventListener('wheel',e=>{
   render();
 },{passive:false});
 
+/* ---------------- caption editor (reuses the text input) ---------------- */
+let capIndex=-1;
+function openCaption(ai,e){
+  const a=annos[ai]; if(!a)return;
+  capIndex=ai; pendingText=null;
+  const r=stage.getBoundingClientRect();
+  textEntry.style.left=(e.clientX-r.left)+'px';
+  textEntry.style.top=(e.clientY-r.top-16)+'px';
+  textEntry.style.display='block';
+  textEntry.value=a.cap||'';
+  textEntry.placeholder='Caption this mark, Enter to save';
+  textEntry.focus(); textEntry.select();
+}
+function commitCaption(){
+  if(capIndex<0)return;
+  const a=annos[capIndex]; const v=textEntry.value.trim();
+  if(a){ const prev=a.cap; if(v)a.cap=v; else delete a.cap; undoStack.push({k:'caption',i:capIndex,prev}); }
+  capIndex=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; sync();
+}
+
 /* ---------------- text tool ---------------- */
 const textEntry=$('textEntry');
 function openText(e,p){
@@ -520,9 +584,10 @@ function openText(e,p){
   textEntry.style.display='block';
   textEntry.value=''; textEntry.focus();
 }
-function cancelText(){ pendingText=null; textEntry.style.display='none'; }
+function cancelText(){ pendingText=null; capIndex=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; }
 textEntry.addEventListener('keydown',e=>{
   if(e.key==='Enter'){
+    if(capIndex>=0){ commitCaption(); e.stopPropagation(); return; }
     const v=textEntry.value.trim();
     if(v&&pendingText){
       annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
@@ -533,7 +598,7 @@ textEntry.addEventListener('keydown',e=>{
   if(e.key==='Escape')cancelText();
   e.stopPropagation();
 });
-textEntry.addEventListener('blur',cancelText);
+textEntry.addEventListener('blur',()=>{ if(capIndex>=0)commitCaption(); else cancelText(); });
 
 /* ---------------- edit ops ---------------- */
 function undo(){
@@ -543,6 +608,7 @@ function undo(){
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
   else if(u.k==='clear')annos=u.prev;
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
+  else if(u.k==='caption'){ const a=annos[u.i]; if(a){ if(u.prev===undefined)delete a.cap; else a.cap=u.prev; } }
   selected=-1; sync();
 }
 function delSelected(){
@@ -793,35 +859,47 @@ $('btnExport').onclick=()=>{
 };
 
 /* ---------------- report + package ---------------- */
+function colorName(hex){
+  return {'#e0342b':'red','#f59e0b':'orange','#2563eb':'blue','#16a34a':'green','#111827':'black'}[hex]||hex;
+}
 function buildReport(){
   const title=$('projectName').value.trim()||'Untitled';
   const notes=$('notes').value.trim();
-  const labels=annos.filter(a=>a.t==='text').map(a=>a.text);
-  const boxes=annos.filter(a=>a.t==='box').length;
-  const arrows=annos.filter(a=>a.t==='arrow').length;
-  const pens=annos.filter(a=>a.t==='pen').length;
   const L=[];
   L.push('# '+title);
   L.push('');
   L.push('_MockuRATOR report · v'+APP_VERSION+' · '+new Date().toLocaleString()+'_');
   L.push('');
-  L.push('This package accompanies **board.png** (the annotated screenshot). Read this file for context, then look at the image. The `.json` file is a MockuRATOR reload file — ignore it for review.');
+  L.push('This package accompanies **board.png** (the annotated screenshot). Read this file for context, then look at the image. The `board.json` file is a MockuRATOR reload file — ignore it for review.');
   L.push('');
   if(notes){ L.push('## Notes'); L.push(''); L.push(notes); L.push(''); }
-  L.push('## What is marked');
+
+  L.push('## Marks');
   L.push('');
-  if(labels.length){
-    L.push('Text labels placed on the board:');
-    labels.forEach(t=>L.push('- "'+t+'"'));
-  }else{
-    L.push('No text labels were placed. The marks below point at areas of the image — see the arrows and boxes.');
+  let n=0, hadCaption=false;
+  annos.forEach(a=>{
+    if(a.t==='box'||a.t==='arrow'){
+      n++;
+      const kind=a.t==='box'?'Box':'Arrow';
+      const col=colorName(a.c);
+      if(a.cap){ hadCaption=true; L.push('- **'+kind+' '+n+'** ('+col+'): '+a.cap); }
+      else L.push('- '+kind+' '+n+' ('+col+') — no caption');
+    }
+  });
+  const freeText=annos.filter(a=>a.t==='text').map(a=>a.text);
+  if(freeText.length){
+    L.push('');
+    L.push('Free-standing text labels on the board:');
+    freeText.forEach(t=>L.push('- "'+t+'"'));
+  }
+  if(n===0 && !freeText.length) L.push('_No boxes, arrows, or labels were placed._');
+  else if(!hadCaption && !freeText.length){
+    L.push('');
+    L.push('_The marks above have no captions yet — see the image for what they point at. Tip: in MockuRATOR, switch to Move (V) and click a box or arrow to caption it._');
   }
   L.push('');
-  const marks=[];
-  if(arrows)marks.push(arrows+' arrow'+(arrows>1?'s':''));
-  if(boxes)marks.push(boxes+' box'+(boxes>1?'es':''));
-  if(pens)marks.push(pens+' pen mark'+(pens>1?'s':''));
-  L.push('Visual marks: '+(marks.length?marks.join(', '):'none')+'.');
+  const pens=annos.filter(a=>a.t==='pen').length;
+  if(pens)L.push('Plus '+pens+' freehand pen mark'+(pens>1?'s':'')+'.');
   L.push('');
   L.push('## Board contents');
   L.push('');
