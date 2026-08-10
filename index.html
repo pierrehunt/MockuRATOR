@@ -143,6 +143,14 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .piece .mdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
 .piece .mdot.filled{opacity:.55}
 .warnCount{color:#c26a1a;font-weight:600}
+#groupBar{display:flex;gap:8px;margin-bottom:8px}
+.mini.primaryish{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mini.primaryish:hover{background:#137059}
+.piece.msel{outline:2px dashed var(--accent);outline-offset:1px}
+.piece.grpRow{background:#f4faf7;border-color:#bfe3d6}
+.piece.grpRow .plbl{color:var(--accent);font-weight:600}
+.piece.member{margin-left:16px;padding:4px 6px}
+.piece.member .plbl{font-size:10px}
 .piece .px{border:none;background:none;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:4px}
 .piece .px:hover{background:#f2e2e0;color:var(--red)}
 .emptyP{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center}
@@ -256,12 +264,16 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
   <aside id="railR" class="rail">
     <div class="railSec sel-hl" id="secSel" style="display:none">
       <h3><span id="selTitle">Selected</span> <button class="flip" data-sec="secSel" title="Move to the other side">⇄</button></h3>
-      <label id="selCapLabel" class="capLabel">Note for this item</label>
-      <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
+      <div id="selCapWrap">
+        <label id="selCapLabel" class="capLabel">Note for this item</label>
+        <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
+      </div>
+      <div id="selGroupHint" class="railTip" style="display:none">This item is in a group — the group's note speaks for it. <button class="mini" id="selOpenGroup">Open group</button></div>
       <div class="markRow" id="markColors" style="display:none"></div>
       <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
         <button class="mini" id="selDup">Duplicate</button>
+        <button class="mini" id="selUngroup" style="display:none">Ungroup</button>
         <button class="mini danger" id="selDel">Delete</button>
       </div>
     </div>
@@ -274,7 +286,12 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
     <div class="railSec" id="secPieces">
       <h3>Items <span id="pieceCount" class="railTip small"></span> <button class="flip" data-sec="secPieces" title="Move to the other side">⇄</button></h3>
+      <div id="groupBar" style="display:none">
+        <button class="mini primaryish" id="btnGroup">Group selected</button>
+        <button class="mini" id="btnMselClear">Clear selection</button>
+      </div>
       <div id="pieces"></div>
+      <div class="railTip small">Ctrl-click rows to select several, then Group — one note and one colour for all of them.</div>
     </div>
 
     <div class="railSec" id="secBm">
@@ -294,7 +311,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.10.1', APP_BUILD='2026-08-10';
+const APP_VERSION='1.11.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -430,7 +447,14 @@ function drawAnno(g,a){
     g.font=`600 ${a.size}px ui-sans-serif,system-ui,sans-serif`;
     g.fillText(a.text,a.x,a.y);
   }
-  if((a.t==='box'||a.t==='arrow')&&a.cap) drawCaption(g,a);
+  if((a.t==='box'||a.t==='arrow')&&a.cap&&!a.g) drawCaption(g,a);
+}
+function drawGroupCaps(g){
+  groups.forEach(gr=>{
+    if(!gr.cap)return;
+    const b=groupBBox(gr.id); if(!b)return;
+    drawCaption(g,{t:'box',x:b.x,y:b.y,cap:gr.cap,c:gr.c,lw:strokeW()});
+  });
 }
 function hitAnno(p){
   // topmost box or arrow near the point (for editing in Move mode)
@@ -482,6 +506,7 @@ function render(){
   });
 
   annos.forEach(a=>drawAnno(ctx,a));
+  drawGroupCaps(ctx);
 
   if(drag){
     if(drag.kind==='slice'){
@@ -505,48 +530,86 @@ function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 /* ---------------- pieces list ---------------- */
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
+  groups=groups.filter(g=>groupMembers(g.id).length>0);   // prune empty groups
   const markCount=annos.filter(a=>a.t==='box'||a.t==='arrow').length;
   const total=slices.length+markCount;
-  const noNote=slices.filter(s=>!s.cap).length+annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap).length;
+  const noNote=slices.filter(s=>!s.cap&&!s.g).length
+    +annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap&&!a.g).length
+    +groups.filter(g=>!g.cap).length;
   $('pieceCount').innerHTML=total?('· '+total+(noNote?(' · <span class="warnCount">'+noNote+' without a note</span>'):'')):'';
+  $('groupBar').style.display=msel.length>=2?'flex':'none';
+  $('btnGroup').textContent='Group selected ('+msel.length+')';
   if(!total){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> or draw a box/arrow — items appear here, each with its own note.</div>'; return; }
 
-  slices.forEach((s,i)=>{
-    const im=images[s.im]; if(!im)return;
+  const mkPieceRow=(s,i,member)=>{
+    const im=images[s.im]; if(!im)return null;
     const on=(sel.kind==='piece'&&sel.i===i);
-    const item=document.createElement('div'); item.className='piece'+(on?' sel':'');
+    const item=document.createElement('div');
+    item.className='piece'+(on?' sel':'')+(member?' member':'')+(msel.includes('piece:'+i)?' msel':'');
     const th=document.createElement('canvas');
-    const sc=Math.min(96/s.sw,52/s.sh,1);
-    th.width=Math.max(1,Math.round(s.sw*sc)); th.height=Math.max(1,Math.round(s.sh*sc));
+    const sc=Math.min(member?70:96/1*(96/96)*1&&member?70:96, member?38:52)/Math.max(s.sw/(member?70:96),s.sh/(member?38:52))>0?1:1;
+    const scale=Math.min((member?70:96)/s.sw,(member?38:52)/s.sh,1);
+    th.width=Math.max(1,Math.round(s.sw*scale)); th.height=Math.max(1,Math.round(s.sh*scale));
     th.getContext('2d').drawImage(im.img,s.sx,s.sy,s.sw,s.sh,0,0,th.width,th.height);
     const info=document.createElement('div'); info.className='pinfo';
     const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent='Piece · '+Math.round(s.sw)+'×'+Math.round(s.sh);
-    const cap=document.createElement('div'); cap.className='pcap'; cap.textContent=s.cap||'no note';
-    if(!s.cap)cap.classList.add('empty');
-    info.append(lbl,cap);
+    info.appendChild(lbl);
+    if(!s.g){ const cap=document.createElement('div'); cap.className='pcap'+(s.cap?'':' empty'); cap.textContent=s.cap||'no note'; info.appendChild(cap); }
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete piece';
-    x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); sync(); };
-    item.onclick=()=>{ selectPiece(i); centerOn(s); render(); refreshPieces(); };
-    item.append(th,info,x); wrap.appendChild(item);
-  });
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); msel=[]; sync(); };
+    item.onclick=ev=>{
+      if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      msel=[]; selectPiece(i); centerOn(s); render(); refreshPieces();
+    };
+    item.append(th,info,x); return item;
+  };
 
-  annos.forEach((a,i)=>{
-    if(a.t!=='box'&&a.t!=='arrow')return;
+  const mkMarkRow=(a,i,member)=>{
     const on=(sel.kind==='mark'&&sel.i===i);
-    const item=document.createElement('div'); item.className='piece markrow'+(on?' sel':'');
+    const item=document.createElement('div');
+    item.className='piece markrow'+(on?' sel':'')+(member?' member':'')+(msel.includes('mark:'+i)?' msel':'');
     const dot=document.createElement('span'); dot.className='mdot'; dot.style.background=a.c;
     if(a.t==='box'&&a.fill)dot.classList.add('filled');
     const info=document.createElement('div'); info.className='pinfo';
     const lbl=document.createElement('div'); lbl.className='plbl';
     lbl.textContent=(a.t==='box'?(a.fill?'Region':'Box'):'Arrow')+' · '+colorName(a.c);
-    const cap=document.createElement('div'); cap.className='pcap'; cap.textContent=a.cap||'no note';
-    if(!a.cap)cap.classList.add('empty');
-    info.append(lbl,cap);
+    info.appendChild(lbl);
+    if(!a.g){ const cap=document.createElement('div'); cap.className='pcap'+(a.cap?'':' empty'); cap.textContent=a.cap||'no note'; info.appendChild(cap); }
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete mark';
-    x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); sync(); };
-    item.onclick=()=>{ selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
-    item.append(dot,info,x); wrap.appendChild(item);
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
+    item.onclick=ev=>{
+      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      msel=[]; selectMark(i); centerOnAnno(a); render(); refreshPieces();
+    };
+    item.append(dot,info,x); return item;
+  };
+
+  // groups first, members indented under each
+  groups.forEach((gr,gi)=>{
+    const mem=groupMembers(gr.id);
+    const on=(sel.kind==='group'&&sel.i===gi);
+    const row=document.createElement('div'); row.className='piece grpRow'+(on?' sel':'');
+    const dot=document.createElement('span'); dot.className='mdot'; dot.style.background=gr.c;
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent='Group · '+mem.length+' items';
+    const cap=document.createElement('div'); cap.className='pcap'+(gr.cap?'':' empty'); cap.textContent=gr.cap||'no note';
+    info.append(lbl,cap);
+    const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Ungroup';
+    x.onclick=ev=>{ ev.stopPropagation(); boardSnap();
+      annos.forEach(a=>{ if(a.g===gr.id)delete a.g; });
+      slices.forEach(s=>{ if(s.g===gr.id)delete s.g; });
+      groups.splice(gi,1); if(sel.kind==='group'&&sel.i===gi)clearSel(); msel=[]; sync(); };
+    row.onclick=()=>{ msel=[]; selectGroup(gi); render(); refreshPieces(); };
+    row.append(dot,info,x); wrap.appendChild(row);
+    mem.forEach(m=>{
+      const r=m.kind==='piece'?mkPieceRow(slices[m.i],m.i,true):mkMarkRow(annos[m.i],m.i,true);
+      if(r)wrap.appendChild(r);
+    });
   });
+
+  // then ungrouped items
+  slices.forEach((s,i)=>{ if(!s.g){ const r=mkPieceRow(s,i,false); if(r)wrap.appendChild(r);} });
+  annos.forEach((a,i)=>{ if((a.t==='box'||a.t==='arrow')&&!a.g){ const r=mkMarkRow(a,i,false); if(r)wrap.appendChild(r);} });
 }
 function centerOn(s){
   const W=canvas.width/dpr, H=canvas.height/dpr;
@@ -666,8 +729,14 @@ canvas.addEventListener('pointerup',()=>{
   if(d.kind==='pan'){ setTool(tool); render(); return; }
   if(d.kind==='moveSlice'){ sync(); return; }
   if(d.kind==='slice'){ const r=norm(d.a,d.b); if(r.w>6&&r.h>6)makeSlice(r); }
-  else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){annos.push({t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW(),fill:fillDefault});undoStack.push({k:'anno'});selectMark(annos.length-1);} }
-  else if(d.kind==='arrow'){ if(Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y)>6){annos.push({t:'arrow',x1:d.a.x,y1:d.a.y,x2:d.b.x,y2:d.b.y,c:color,lw:strokeW()});undoStack.push({k:'anno'});selectMark(annos.length-1);} }
+  else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){
+    const nb={t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW(),fill:fillDefault};
+    if(sel.kind==='group'&&groups[sel.i]){ nb.g=groups[sel.i].id; nb.c=groups[sel.i].c; annos.push(nb); undoStack.push({k:'anno'}); openEditor(false); }
+    else { annos.push(nb); undoStack.push({k:'anno'}); selectMark(annos.length-1); } } }
+  else if(d.kind==='arrow'){ if(Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y)>6){
+    const na={t:'arrow',x1:d.a.x,y1:d.a.y,x2:d.b.x,y2:d.b.y,c:color,lw:strokeW()};
+    if(sel.kind==='group'&&groups[sel.i]){ na.g=groups[sel.i].id; na.c=groups[sel.i].c; annos.push(na); undoStack.push({k:'anno'}); openEditor(false); }
+    else { annos.push(na); undoStack.push({k:'anno'}); selectMark(annos.length-1); } } }
   else if(d.kind==='pen'){ if(d.pts.length>1){annos.push({t:'pen',pts:d.pts,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
   sync();
 });
@@ -684,13 +753,19 @@ canvas.addEventListener('wheel',e=>{
 /* ---------------- unified selection + editor (pieces AND marks) ---------------- */
 // sel.kind: 'piece' | 'mark' | null ; sel.i: index into slices or annos
 let sel={kind:null,i:-1}, fillDefault=false;
+let groups=[], nextGid=1, msel=[];   // groups: {id, cap, c}; msel: ['mark:2','piece:0']
 const MARK_COLORS=['#e0342b','#f59e0b','#2563eb','#16a34a','#111827'];
 (function(){
   const wrap=$('markColors');
   MARK_COLORS.forEach(c=>{
     const b=document.createElement('button'); b.className='msw'; b.style.background=c; b.dataset.c=c;
     b.title=colorName(c);
-    b.onclick=()=>{ if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a)return;
+    b.onclick=()=>{
+      if(sel.kind==='group'){ const gr=groups[sel.i]; if(!gr)return;
+        boardSnap(); gr.c=c;
+        annos.forEach(a=>{ if(a.g===gr.id)a.c=c; });
+        syncEditor(); sync(); return; }
+      if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a)return;
       undoStack.push({k:'markedit',i:sel.i,prev:{...a}}); a.c=c; syncEditor(); sync(); };
     wrap.appendChild(b);
   });
@@ -698,8 +773,33 @@ const MARK_COLORS=['#e0342b','#f59e0b','#2563eb','#16a34a','#111827'];
 function selObj(){
   if(sel.kind==='piece')return slices[sel.i];
   if(sel.kind==='mark')return annos[sel.i];
+  if(sel.kind==='group')return groups[sel.i];
   return null;
 }
+function groupById(id){ return groups.find(g=>g.id===id); }
+function groupMembers(id){
+  const m=[];
+  annos.forEach((a,i)=>{ if(a.g===id&&(a.t==='box'||a.t==='arrow'))m.push({kind:'mark',i}); });
+  slices.forEach((s,i)=>{ if(s.g===id)m.push({kind:'piece',i}); });
+  return m;
+}
+function groupBBox(id){
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity,any=false;
+  const acc=(a,b,c,d)=>{any=true;x1=Math.min(x1,a);y1=Math.min(y1,b);x2=Math.max(x2,c);y2=Math.max(y2,d);};
+  annos.forEach(a=>{ if(a.g!==id)return;
+    if(a.t==='box')acc(a.x,a.y,a.x+a.w,a.y+a.h);
+    else if(a.t==='arrow')acc(Math.min(a.x1,a.x2),Math.min(a.y1,a.y2),Math.max(a.x1,a.x2),Math.max(a.y1,a.y2));
+  });
+  slices.forEach(s=>{ if(s.g===id)return acc(s.x,s.y,s.x+s.sw,s.y+s.sh); });
+  return any?{x:x1,y:y1}:null;
+}
+function boardSnap(){
+  undoStack.push({k:'boardSnap',
+    slices:JSON.parse(JSON.stringify(slices)),
+    annos:JSON.parse(JSON.stringify(annos)),
+    groups:JSON.parse(JSON.stringify(groups))});
+}
+function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; msel=[]; openEditor(true); }
 function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
 function selectMark(i){
   if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ clearSel(); return; }
@@ -715,20 +815,69 @@ function openEditor(focus){
 }
 function syncEditor(){
   const o=selObj(); if(!o)return;
+  const isGroup=sel.kind==='group';
   const isMark=sel.kind==='mark';
+  const grouped=!isGroup&&o.g&&groupById(o.g);
+  if(isGroup){
+    const n=groupMembers(o.id).length;
+    $('selTitle').textContent='Selected group · '+n+' item'+(n!==1?'s':'');
+    $('selCapLabel').textContent='Note for this issue (all '+n+' items)';
+    $('selCap').value=o.cap||'';
+    $('selCap').placeholder='One note that all the grouped marks point at.';
+    $('selCapWrap').style.display='block'; $('selGroupHint').style.display='none';
+    $('markColors').style.display='flex';
+    [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c));
+    $('markFillWrap').style.display='none';
+    $('selDup').style.display='none'; $('selUngroup').style.display='inline-block';
+    return;
+  }
+  $('selDup').style.display='inline-block'; $('selUngroup').style.display='none';
   const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):'this arrow') : 'this piece';
   $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):'Selected arrow') : 'Selected piece';
-  $('selCapLabel').textContent = 'Note for '+what;
-  $('selCap').value=o.cap||'';
-  $('selCap').placeholder = "What's the issue or change with "+what+"?";
-  $('markColors').style.display=isMark?'flex':'none';
-  if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
+  if(grouped){
+    $('selCapWrap').style.display='none';
+    $('selGroupHint').style.display='block';
+    $('markColors').style.display='none';
+  }else{
+    $('selCapWrap').style.display='block';
+    $('selGroupHint').style.display='none';
+    $('selCapLabel').textContent = 'Note for '+what;
+    $('selCap').value=o.cap||'';
+    $('selCap').placeholder = "What's the issue or change with "+what+"?";
+    $('markColors').style.display=isMark?'flex':'none';
+    if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
+  }
   const fw=$('markFillWrap');
-  fw.style.display=(isMark&&o.t==='box')?'flex':'none';
+  fw.style.display=(isMark&&!grouped&&o.t==='box')?'flex':'none';
   if(isMark&&o.t==='box')$('markFill').checked=!!o.fill;
 }
+$('selOpenGroup').onclick=()=>{ const o=selObj(); if(o&&o.g){ const gi=groups.findIndex(g=>g.id===o.g); if(gi>=0)selectGroup(gi); } };
+$('selUngroup').onclick=()=>{
+  if(sel.kind!=='group')return; const gr=groups[sel.i];
+  boardSnap();
+  annos.forEach(a=>{ if(a.g===gr.id)delete a.g; });
+  slices.forEach(s=>{ if(s.g===gr.id)delete s.g; });
+  groups.splice(sel.i,1); clearSel(); sync(); toast('Ungrouped — items keep the colour, notes are their own again.');
+};
 $('selCap').addEventListener('input',()=>{ const o=selObj(); if(!o)return;
   const v=$('selCap').value.trim(); if(v)o.cap=v; else delete o.cap; render(); refreshPieces(); scheduleAutosave(); });
+$('btnGroup').onclick=()=>{
+  if(msel.length<2)return;
+  boardSnap();
+  const gid=nextGid++;
+  let gc='#e0342b';
+  msel.forEach(key=>{
+    const [kind,idx]=key.split(':'); const i=+idx;
+    if(kind==='mark'&&annos[i]){ annos[i].g=gid; gc=annos[i].c||gc; }
+    if(kind==='piece'&&slices[i]) slices[i].g=gid;
+  });
+  groups.push({id:gid,cap:'',c:gc});
+  annos.forEach(a=>{ if(a.g===gid)a.c=gc; });
+  msel=[];
+  selectGroup(groups.length-1); sync();
+  toast('Grouped — one note and one colour now cover all of them.');
+};
+$('btnMselClear').onclick=()=>{ msel=[]; refreshPieces(); };
 $('markFill').addEventListener('change',()=>{ if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a)return;
   undoStack.push({k:'markedit',i:sel.i,prev:{...a}}); a.fill=$('markFill').checked; fillDefault=a.fill; syncEditor(); sync(); });
 $('selDup').onclick=()=>{
@@ -740,6 +889,9 @@ $('selDup').onclick=()=>{
   sync();
 };
 $('selDel').onclick=()=>{
+  if(sel.kind==='group'){ const gr=groups[sel.i]; boardSnap();
+    annos=annos.filter(a=>a.g!==gr.id); slices=slices.filter(s=>s.g!==gr.id);
+    groups.splice(sel.i,1); clearSel(); selected=-1; sync(); return; }
   if(sel.kind==='piece'){ const s=slices.splice(sel.i,1)[0]; undoStack.push({k:'delSlice',s,i:sel.i}); }
   else if(sel.kind==='mark'){ const a=annos.splice(sel.i,1)[0]; undoStack.push({k:'delAnno',i:sel.i,a}); }
   clearSel(); selected=-1; sync();
@@ -780,6 +932,7 @@ function undo(){
   else if(u.k==='clear')annos=u.prev;
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
   else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(sel.kind==='mark'&&sel.i===u.i)syncEditor(); }
+  else if(u.k==='boardSnap'){ slices=u.slices; annos=u.annos; groups=u.groups; msel=[]; }
   clearSel(); selected=-1; sync();
 }
 function delSelected(){
@@ -933,7 +1086,7 @@ function downloadBlob(blob,name){
 function serialize(){
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
     project:$('projectName').value,notes:$('notes').value,savedAt:new Date().toISOString(),
-    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos};
+    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups};
 }
 function applyState(d){
   if(!d||(d.app!=='mockurator'&&d.app!=='sliceboard'))throw new Error('bad file');
@@ -942,7 +1095,8 @@ function applyState(d){
     img.onload=()=>res({img,dataURL:o.dataURL,x:o.x,y:o.y,w:img.naturalWidth,h:img.naturalHeight});
     img.src=o.dataURL;
   }))).then(arr=>{
-    images=arr; slices=d.slices||[]; annos=d.annos||[];
+    images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[];
+    nextGid=groups.reduce((m,g)=>Math.max(m,g.id+1),1); msel=[];
     $('projectName').value=d.project||''; $('notes').value=d.notes||'';
     undoStack=[]; selected=-1;
     $('dropHint').style.display=images.length?'none':'flex';
@@ -1011,6 +1165,7 @@ function renderBoard(cb){
     g.strokeStyle='#d0cdc2'; g.lineWidth=1; g.strokeRect(s.x,s.y,s.sw,s.sh);
   });
   annos.forEach(a=>drawAnno(g,a));
+  drawGroupCaps(g);
   g.restore();
   if(noteLines.length){
     g.fillStyle='#33322b'; g.font=`400 ${noteSize}px ui-sans-serif,system-ui,sans-serif`;
@@ -1053,11 +1208,29 @@ function buildReport(){
   L.push('');
   if(notes){ L.push('## Notes'); L.push(''); L.push(notes); L.push(''); }
 
+  if(groups.length){
+    L.push('## Issues');
+    L.push('');
+    groups.forEach((gr,gi)=>{
+      const mem=groupMembers(gr.id);
+      const arrows=mem.filter(m=>m.kind==='mark'&&annos[m.i].t==='arrow').length;
+      const boxes=mem.filter(m=>m.kind==='mark'&&annos[m.i].t==='box').length;
+      const pieces=mem.filter(m=>m.kind==='piece').length;
+      const parts=[];
+      if(arrows)parts.push(arrows+' arrow'+(arrows>1?'s':''));
+      if(boxes)parts.push(boxes+' box'+(boxes>1?'es':'')+'/region'+(boxes>1?'s':''));
+      if(pieces)parts.push(pieces+' piece'+(pieces>1?'s':''));
+      const where=parts.length?' — shown by '+parts.join(', ')+' in '+colorName(gr.c):'';
+      if(gr.cap)L.push('- **Issue '+(gi+1)+'**: '+gr.cap+where);
+      else L.push('- Issue '+(gi+1)+' — no note yet'+where);
+    });
+    L.push('');
+  }
   L.push('## Marks');
   L.push('');
   let n=0, hadCaption=false;
   annos.forEach(a=>{
-    if(a.t==='box'||a.t==='arrow'){
+    if((a.t==='box'||a.t==='arrow')&&!a.g){
       n++;
       const kind=a.t==='box'?(a.fill?'Filled region':'Box'):'Arrow';
       const col=colorName(a.c);
@@ -1071,7 +1244,7 @@ function buildReport(){
     L.push('Free-standing text labels on the board:');
     freeText.forEach(t=>L.push('- "'+t+'"'));
   }
-  if(n===0 && !freeText.length) L.push('_No boxes, arrows, or labels were placed._');
+  if(n===0 && !freeText.length) L.push(groups.length?'_All marks are grouped under Issues above._':'_No boxes, arrows, or labels were placed._');
   else if(!hadCaption && !freeText.length){
     L.push('');
     L.push('_The marks above have no captions yet — see the image for what they point at. Tip: in MockuRATOR, switch to Move (V) and click a box or arrow to caption it._');
@@ -1084,6 +1257,7 @@ function buildReport(){
     L.push('## Pieces');
     L.push('');
     slices.forEach((s,i)=>{
+      if(s.g)return;
       const dims=Math.round(s.sw)+'×'+Math.round(s.sh);
       if(s.cap)L.push('- **Piece '+(i+1)+'** ('+dims+'): '+s.cap);
       else L.push('- Piece '+(i+1)+' ('+dims+') — no note');
@@ -1139,7 +1313,7 @@ const blobBytes=blob=>blob.arrayBuffer().then(b=>new Uint8Array(b));
 
 $('btnPackage').onclick=async()=>{
   if(!images.length){toast('Nothing to package yet');return;}
-  const noNote=slices.filter(s=>!s.cap).length+annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap).length;
+  const noNote=slices.filter(s=>!s.cap&&!s.g).length+annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap&&!a.g).length+groups.filter(g=>!g.cap).length;
   if(noNote>0 && !$('btnPackage').dataset.warned){
     $('btnPackage').dataset.warned='1';
     toast(noNote+' item'+(noNote>1?'s':'')+' still ha'+(noNote>1?'ve':'s')+' no note — click one in Items to add it, or press Export Package again to send anyway.');

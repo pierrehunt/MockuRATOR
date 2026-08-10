@@ -26,6 +26,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
 - **Annotate** with callout boxes, arrows, freehand pen, and text labels in five colours
+- **Group items into issues** — Ctrl-click several rows in Items, hit **Group**: one note and one colour for all of them, one caption pill on the board, and the report writes a single "Issue: … — shown by 4 arrows" line instead of four repeats. New marks drawn while a group is selected join it and inherit its colour. Ungroup any time
 - **One editor for everything** — click any piece, box, or arrow to open the **Selected** panel: note it, and for marks also recolour or toggle **Fill**. Pieces and marks both appear in the **Items** list, so you can always get back to any one of them — no hunting under overlapping boxes
 - **Filled regions** — a translucent box fill highlights a whole section (sidebar, button row, a queue). Filled and captioned regions are the strongest report format: "red region = the sidebar, blue region = the buttons"
 - **Notes on every item, in the report** — each piece and each mark carries its own note; the exported report.md lists them all, so "Piece 1: button misaligned" and "Filled region (red): the sidebar" travel as text the AI reads
@@ -72,6 +73,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.11.0** — Groups: multi-select items into one issue with a shared note and inherited colour; single caption on the board; grouped "Issues" section in the report
 - **1.10.1** — Changelog repair: removed a duplicate, mis-ordered 1.5.2 entry
 - **1.10.0** — Prominent auto-focused note field on every selection; global notes relabelled "Overall"; Items flags how many still need a note, and Export Package warns before sending an un-noted board
 - **1.9.0** — Unified selection: pieces and marks share one editor and one Items list; every item (piece or mark) can carry its own note, listed per item in the report
