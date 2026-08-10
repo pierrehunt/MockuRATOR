@@ -155,6 +155,14 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 #tipDots .dot.on{background:var(--accent)}
 .tipsList{margin:4px 0 0;padding-left:18px;font-size:13.5px;line-height:1.55;color:var(--ink2)}
 .tipsList li{margin-bottom:7px}
+.micWrap{position:relative}
+.micWrap textarea{padding-right:38px}
+.micBtn{position:absolute;right:6px;top:6px;width:28px;height:28px;border-radius:50%;
+  border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0}
+.micBtn:hover{background:#f0eee6}
+.micBtn.live{background:var(--red);border-color:var(--red);animation:micPulse 1.2s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,52,43,.45)}50%{box-shadow:0 0 0 7px rgba(224,52,43,0)}}
+@media (prefers-reduced-motion: reduce){.micBtn.live{animation:none}}
 .warnCount{color:#c26a1a;font-weight:600}
 #groupBar{display:flex;gap:8px;margin-bottom:8px}
 .mini.primaryish{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -292,7 +300,10 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
       <h3><span id="selTitle">Selected</span> <button class="flip" data-sec="secSel" title="Move to the other side">⇄</button></h3>
       <div id="selCapWrap">
         <label id="selCapLabel" class="capLabel">Note for this item</label>
-        <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
+        <div class="micWrap">
+          <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
+          <button class="micBtn" data-target="selCap" title="Dictate — click, speak, click again to stop">🎤</button>
+        </div>
       </div>
       <div id="selGroupHint" class="railTip" style="display:none">This item is in a group — the group's note speaks for it. <button class="mini" id="selOpenGroup">Open group</button></div>
       <div class="markRow" id="markColors" style="display:none"></div>
@@ -306,7 +317,10 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
     <div class="railSec" id="secNotes">
       <h3>Overall notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
-      <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary."></textarea>
+      <div class="micWrap">
+        <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary."></textarea>
+        <button class="micBtn" data-target="notes" title="Dictate — click, speak, click again to stop">🎤</button>
+      </div>
       <div class="railTip small">For a note on a specific item, click it and use the note box above.</div>
     </div>
 
@@ -337,7 +351,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.13.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.14.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -779,7 +793,8 @@ canvas.addEventListener('wheel',e=>{
 /* ---------------- unified selection + editor (pieces AND marks) ---------------- */
 // sel.kind: 'piece' | 'mark' | null ; sel.i: index into slices or annos
 let sel={kind:null,i:-1}, fillDefault=false;
-let groups=[], nextGid=1, msel=[];   // groups: {id, cap, c}; msel: ['mark:2','piece:0']
+let groups=[], nextGid=1, msel=[];
+let contextLog=[];   // {when, source, detail, size} — one entry per screenshot brought in   // groups: {id, cap, c}; msel: ['mark:2','piece:0']
 const MARK_COLORS=['#e0342b','#f59e0b','#2563eb','#16a34a','#111827'];
 (function(){
   const wrap=$('markColors');
@@ -1065,9 +1080,11 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>{ if(e.code==='Space')spaceDown=false; });
 
 /* ---------------- image input ---------------- */
-function addImageDataURL(dataURL){
+function addImageDataURL(dataURL, source, detail){
   const img=new Image();
   img.onload=()=>{
+    contextLog.push({when:new Date().toISOString(), source:source||'pasted/opened image',
+      detail:detail||'', size:img.naturalWidth+'×'+img.naturalHeight});
     const x=images.length?Math.max(...images.map(m=>m.x+m.w))+80:0;
     images.push({img,dataURL,x,y:0,w:img.naturalWidth,h:img.naturalHeight});
     undoStack.push({k:'image'});
@@ -1081,7 +1098,7 @@ function addImageDataURL(dataURL){
 }
 function addImageFile(file){
   const rd=new FileReader();
-  rd.onload=()=>addImageDataURL(rd.result);
+  rd.onload=()=>addImageDataURL(rd.result,'image file',file.name||'');
   rd.readAsDataURL(file);
 }
 
@@ -1104,9 +1121,11 @@ $('btnCapture').onclick=async()=>{
     const c=document.createElement('canvas');
     c.width=v.videoWidth; c.height=v.videoHeight;
     c.getContext('2d').drawImage(v,0,0);
+    const stream0Label=(stream.getVideoTracks()[0]||{}).label||'';
     stream.getTracks().forEach(t=>t.stop()); stream=null;
     if(!c.width||!c.height)throw new Error('empty frame');
-    addImageDataURL(c.toDataURL('image/png'));
+    const label=(stream0Label||'').trim();
+    addImageDataURL(c.toDataURL('image/png'), '📸 screen capture', label);
     toast('Captured — press S and slice away.');
   }catch(err){
     if(stream)stream.getTracks().forEach(t=>t.stop());
@@ -1118,7 +1137,7 @@ $('btnOpen').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=e=>{[...e.target.files].forEach(addImageFile);e.target.value='';};
 window.addEventListener('paste',e=>{
   for(const it of e.clipboardData?.items||[]){
-    if(it.type.startsWith('image/')){addImageFile(it.getAsFile());e.preventDefault();break;}
+    if(it.type.startsWith('image/')){const f=it.getAsFile();const rd=new FileReader();rd.onload=()=>addImageDataURL(rd.result,'pasted from clipboard','');rd.readAsDataURL(f);e.preventDefault();break;}
   }
 });
 stage.addEventListener('dragover',e=>e.preventDefault());
@@ -1143,7 +1162,7 @@ function downloadBlob(blob,name){
 function serialize(){
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
     project:$('projectName').value,notes:$('notes').value,savedAt:new Date().toISOString(),
-    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups};
+    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups,contextLog};
 }
 function applyState(d){
   if(!d||(d.app!=='mockurator'&&d.app!=='sliceboard'))throw new Error('bad file');
@@ -1152,7 +1171,7 @@ function applyState(d){
     img.onload=()=>res({img,dataURL:o.dataURL,x:o.x,y:o.y,w:img.naturalWidth,h:img.naturalHeight});
     img.src=o.dataURL;
   }))).then(arr=>{
-    images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[];
+    images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[]; contextLog=d.contextLog||[];
     nextGid=groups.reduce((m,g)=>Math.max(m,g.id+1),1); msel=[];
     $('projectName').value=d.project||''; $('notes').value=d.notes||'';
     undoStack=[]; selected=-1;
@@ -1262,6 +1281,15 @@ function buildReport(){
   L.push('_MockuRATOR report · v'+APP_VERSION+' · '+new Date().toLocaleString()+'_');
   L.push('');
   L.push('This package accompanies **board.png** (the annotated screenshot). Read this file for context, then look at the image. The `board.json` file is a MockuRATOR reload file — ignore it for review.');
+  L.push('');
+  L.push('## Context');
+  L.push('');
+  L.push('- Report created: '+new Date().toLocaleString()+' · viewport '+window.innerWidth+'×'+window.innerHeight+' · '+(navigator.userAgentData&&navigator.userAgentData.platform||navigator.platform||''));
+  if(contextLog.length){
+    contextLog.forEach(cl=>{
+      L.push('- Screenshot: '+cl.source+(cl.detail?' — '+cl.detail:'')+' · '+cl.size+' · '+new Date(cl.when).toLocaleTimeString());
+    });
+  }
   L.push('');
   if(notes){ L.push('## Notes'); L.push(''); L.push(notes); L.push(''); }
 
@@ -1398,7 +1426,7 @@ $('btnPackage').onclick=async()=>{
 };
 
 /* ---------------- capture bookmarklet ---------------- */
-const BM_CODE="(function(){if(window.__mkuCap)return;var o=document.createElement('div');o.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;border:2px solid #e0342b;background:rgba(224,52,43,.08);left:0;top:0;width:0;height:0';document.body.appendChild(o);window.__mkuCap=1;var cur=null;function mm(e){var el=document.elementFromPoint(e.clientX,e.clientY);if(!el||el===o)return;cur=el;var r=el.getBoundingClientRect();o.style.left=r.left+'px';o.style.top=r.top+'px';o.style.width=r.width+'px';o.style.height=r.height+'px'}function done(){document.removeEventListener('mousemove',mm,true);document.removeEventListener('click',ck,true);document.removeEventListener('keydown',kd,true);o.remove();window.__mkuCap=0}function ck(e){e.preventDefault();e.stopPropagation();var el=cur;done();var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=function(){html2canvas(el,{backgroundColor:'#fff',scale:window.devicePixelRatio||1,useCORS:true}).then(function(c){var a=document.createElement('a');a.download='capture-'+Date.now()+'.png';a.href=c.toDataURL('image/png');a.click()})};s.onerror=function(){alert('This site blocks the capture script (CSP).')};document.body.appendChild(s)}function kd(e){if(e.key==='Escape')done()}document.addEventListener('mousemove',mm,true);document.addEventListener('click',ck,true);document.addEventListener('keydown',kd,true)})();";
+const BM_CODE="(function(){if(window.__mkuCap)return;var o=document.createElement('div');o.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;border:2px solid #e0342b;background:rgba(224,52,43,.08);left:0;top:0;width:0;height:0';document.body.appendChild(o);window.__mkuCap=1;var cur=null;function mm(e){var el=document.elementFromPoint(e.clientX,e.clientY);if(!el||el===o)return;cur=el;var r=el.getBoundingClientRect();o.style.left=r.left+'px';o.style.top=r.top+'px';o.style.width=r.width+'px';o.style.height=r.height+'px'}function done(){document.removeEventListener('mousemove',mm,true);document.removeEventListener('click',ck,true);document.removeEventListener('keydown',kd,true);o.remove();window.__mkuCap=0}function ck(e){e.preventDefault();e.stopPropagation();var el=cur;done();var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=function(){html2canvas(el,{backgroundColor:'#fff',scale:window.devicePixelRatio||1,useCORS:true}).then(function(c){var a=document.createElement('a');a.download='mockugrab-'+location.hostname+(location.pathname.replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'home')+'-'+Date.now()+'.png';a.href=c.toDataURL('image/png');a.click()})};s.onerror=function(){alert('This site blocks the capture script (CSP).')};document.body.appendChild(s)}function kd(e){if(e.key==='Escape')done()}document.addEventListener('mousemove',mm,true);document.addEventListener('click',ck,true);document.addEventListener('keydown',kd,true)})();";
 $('bmLink').href='javascript:'+encodeURIComponent(BM_CODE);
 $('bmLink').onclick=e=>{ e.preventDefault(); toast('Drag this button to your bookmarks bar — clicking it here does nothing.'); };
 $('bmCopy').onclick=()=>{
@@ -1417,8 +1445,52 @@ function toast(m){
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+/* ---------------- voice dictation (Web Speech API) ---------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let dictating=null;   // {rec, btn, target, base}
+function stopDictation(){
+  if(!dictating)return;
+  try{ dictating.rec.stop(); }catch(e){}
+  dictating.btn.classList.remove('live');
+  dictating=null;
+}
+document.querySelectorAll('.micBtn').forEach(btn=>{
+  if(!SR){ btn.title='Dictation needs Chrome or Edge on the HTTPS site'; }
+  btn.addEventListener('click',()=>{
+    if(dictating){ const same=dictating.btn===btn; stopDictation(); if(same)return; }
+    if(!SR){ toast('Dictation needs Chrome or Edge on the live HTTPS site.'); return; }
+    const target=$(btn.dataset.target);
+    const rec=new SR();
+    rec.lang=navigator.language||'en-ZA';
+    rec.continuous=true; rec.interimResults=true;
+    const base=target.value?target.value.replace(/\s+$/,'')+' ':'';
+    dictating={rec,btn,target,base};
+    let finals='';
+    rec.onresult=ev=>{
+      let interim='';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        const t=ev.results[i][0].transcript;
+        if(ev.results[i].isFinal)finals+=t+' '; else interim+=t;
+      }
+      target.value=(base+finals+interim).replace(/\s+/g,' ').trimStart();
+      target.dispatchEvent(new Event('input'));
+    };
+    rec.onerror=e=>{
+      stopDictation();
+      if(e.error==='not-allowed')toast('Microphone blocked — allow it in the address bar and try again.');
+      else if(e.error==='no-speech')toast('Heard nothing — click the mic and try again.');
+      else if(e.error!=='aborted')toast('Dictation stopped ('+e.error+').');
+    };
+    rec.onend=()=>{ if(dictating&&dictating.rec===rec){ dictating.btn.classList.remove('live'); dictating=null; } };
+    try{ rec.start(); btn.classList.add('live'); target.focus();
+      toast('Listening — speak your note, click the mic again to stop.');
+    }catch(err){ dictating=null; toast('Could not start dictation.'); }
+  });
+});
+
 /* ---------------- tips ---------------- */
 const TIPS=[
+  'Hate typing notes? Click the <b>🎤</b> on any note field and just talk — your words appear as text while you speak. Spelling optional forever.',
   '<b>📸 Capture</b> grabs any window on your computer — your desktop apps included — or any browser tab, straight onto the board. No screenshot tool needed. (Live site only.)',
   '<b>Group related marks:</b> Ctrl-click several rows in Items, then <b>Group</b> — one note, one colour, and one clean "Issue" line in the report.',
   'Click any piece, box, or arrow (in <b>Move</b>) and just start typing — the note field is already focused for you.',

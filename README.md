@@ -26,6 +26,8 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
 - **Annotate** with callout boxes, arrows, freehand pen, and text labels in five colours
+- **🎤 Voice notes** — a mic button on every note field: click, speak, and your words appear as text while you talk (Web Speech, Chrome/Edge on the live site). Spelling optional, forever
+- **Auto-context for the AI** — every report opens with a Context block: when it was made, the viewport, and where each screenshot came from — 📸 captures record the window they grabbed, MockuGrab files carry the page they came from in their name
 - **📸 Capture any window** — one button opens the system picker: choose any application window (your desktop apps — Python, C#, anything), any browser tab, or a whole screen, and a crisp frame lands straight on the board. No screenshot tool, no save-and-reopen. Captures tabs even on sites whose security policy blocks the bookmarklet, because it photographs pixels instead of entering the page
 - **Built-in tips** — the empty board shows a rotating "Did you know?" card walking through grouping, MockuGrab, packages, autosave and more; the full scrollable list lives in the <kbd>?</kbd> overlay
 - **Group items into issues** — Ctrl-click several rows in Items, hit **Group**: one note and one colour for all of them, one caption pill on the board, and the report writes a single "Issue: … — shown by 4 arrows" line instead of four repeats. New marks drawn while a group is selected join it and inherit its colour. Ungroup any time
@@ -76,6 +78,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.14.0** — 🎤 voice dictation on every note field; auto-context block in reports (viewport, timestamps, per-screenshot provenance); MockuGrab filenames now carry the source page
 - **1.13.0** — 📸 Capture: grab any application window, browser tab, or screen via the system picker, straight onto the board
 - **1.12.0** — Rotating tips card on the empty board plus a full tips list in the ? overlay — the powerful features now introduce themselves
 - **1.11.0** — Groups: multi-select items into one issue with a shared note and inherited colour; single caption on the board; grouped "Issues" section in the report
