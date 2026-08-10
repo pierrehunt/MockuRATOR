@@ -72,13 +72,13 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
-- **1.5.2** — Lightweight social-preview card (WhatsApp and friends reject large preview images)
+- **1.10.1** — Changelog repair: removed a duplicate, mis-ordered 1.5.2 entry
 - **1.10.0** — Prominent auto-focused note field on every selection; global notes relabelled "Overall"; Items flags how many still need a note, and Export Package warns before sending an un-noted board
 - **1.9.0** — Unified selection: pieces and marks share one editor and one Items list; every item (piece or mark) can carry its own note, listed per item in the report
 - **1.8.0** — Selected-mark editor (caption + recolour + fill toggle); translucent filled regions; readable hint bar and a `?` shortcuts overlay
 - **1.7.0** — Per-mark captions: click a box or arrow in Move mode to caption it; captions render on the board and group by mark in the report
 - **1.6.0** — Export Package: one-click ZIP with the annotated PNG, an AI-readable report.md, and the reload JSON (dependency-free ZIP writer)
-- **1.5.2** — Lightweight social-preview card for link sharing
+- **1.5.2** — Lightweight social-preview card (messengers reject large preview images)
 - **1.5.1** — Credits: built with Anthropic's Claude; logo artwork by ChatGPT
 - **1.5.0** — Brand identity (logo, icon, favicon), version stamped on exported PNGs and saved JSONs, semantic versioning in the header
 - **1.1–1.4** — Side panel: docked notes, pieces list with thumbnails, capture bookmarklet, autosave and recent boards; movable, resizable panels
