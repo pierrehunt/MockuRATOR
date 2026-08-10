@@ -107,8 +107,9 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .chk2{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);cursor:pointer;margin:8px 0}
 .markRow2{display:flex;gap:8px;margin-top:8px}
 .mini.danger:hover{background:#f2e2e0;color:var(--red);border-color:#e6b8b3}
-#textEntry{position:absolute;display:none;min-width:180px;border:2px solid var(--red);
-  border-radius:4px;padding:4px 8px;background:#fff;font-weight:600}
+#textEntry{position:absolute;display:none;border:2px dashed var(--red);
+  border-radius:4px;padding:2px 6px;background:rgba(255,255,255,.92);font-weight:600;
+  font-family:ui-sans-serif,system-ui,sans-serif;outline:none;width:auto}
 #toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
   background:var(--ink);color:#efede4;border-radius:8px;padding:8px 16px;font-size:14px;
   opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;z-index:20}
@@ -365,7 +366,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.17.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.17.1', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -563,7 +564,7 @@ function render(){
     ctx.strokeRect(s.x,s.y,s.sw,s.sh);
   });
 
-  annos.forEach(a=>drawAnno(ctx,a));
+  annos.forEach((a,ix)=>{ if(ix!==editIdx)drawAnno(ctx,a); });
   drawGroupCaps(ctx);
   if(sel.kind==='mark'&&annos[sel.i]){
     const a=annos[sel.i], hs=13/view.s;
@@ -797,7 +798,7 @@ function makeSlice(r){
 
 /* ---------------- pointer handling ---------------- */
 canvas.addEventListener('pointerdown',e=>{
-  if(pendingText)cancelText();
+  if(pendingText||editIdx>=0)commitTextEntry(true);
   canvas.setPointerCapture(e.pointerId);
   const p=toWorld(e);
   if(e.button===1||tool==='pan'||spaceDown){
@@ -913,6 +914,12 @@ canvas.addEventListener('pointerup',()=>{
   else if(d.kind==='pen'){ if(d.pts.length>1){annos.push({t:'pen',pts:d.pts,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
   sync();
 });
+canvas.addEventListener('dblclick',e=>{
+  const p=toWorld(e);
+  const ai=hitAnno(p);
+  if(ai>=0&&annos[ai].t==='text'){ e.preventDefault(); openText(e,p,ai); return; }
+  if(ai<0&&hitSlice(p)<0&&tool!=='text'){ e.preventDefault(); openText(e,p,-1); }
+});
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
@@ -925,7 +932,7 @@ canvas.addEventListener('wheel',e=>{
 
 /* ---------------- unified selection + editor (pieces AND marks) ---------------- */
 // sel.kind: 'piece' | 'mark' | null ; sel.i: index into slices or annos
-let sel={kind:null,i:-1}, fillDefault=false;
+let sel={kind:null,i:-1}, fillDefault=false, editIdx=-1;
 let groups=[], nextGid=1, msel=[];
 let contextLog=[];   // {when, source, detail, size} — one entry per screenshot brought in
 let attachments=[];  // {name, text, when} — MockuLog files and other text logs
@@ -1102,36 +1109,57 @@ $('selDel').onclick=()=>{
 
 /* ---------------- text tool ---------------- */
 const textEntry=$('textEntry');
-function openText(e,p){
+function openText(e,p,idx){
+  const editing = typeof idx==='number' && idx>=0 && annos[idx] && annos[idx].t==='text';
+  const a = editing ? annos[idx] : null;
+  pendingText = editing ? null : p;
+  editIdx = editing ? idx : -1;
+  const fs=(a?a.size:textSize())*view.s;
+  const col=a?a.c:color;
   const r=stage.getBoundingClientRect();
-  pendingText=p;
-  textEntry.style.left=(e.clientX-r.left)+'px';
-  textEntry.style.top=(e.clientY-r.top-16)+'px';
+  let sx, sy;
+  if(a){ sx=a.x*view.s+view.x; sy=a.y*view.s+view.y; }
+  else { sx=e.clientX-r.left; sy=e.clientY-r.top; }
+  textEntry.style.left=(sx-8)+'px';
+  textEntry.style.top=(sy-fs*1.08)+'px';
+  textEntry.style.fontSize=fs+'px';
+  textEntry.style.color=col;
+  textEntry.style.borderColor=col;
+  textEntry.value=a?(a.text||''):'';
+  textEntry.size=Math.max(6,textEntry.value.length+2);
   textEntry.style.display='block';
-  textEntry.value='';
-  setTimeout(()=>{ textEntry.focus(); },0);
+  setTimeout(()=>{ textEntry.focus(); if(a)textEntry.select(); },0);
+  render();
 }
-function cancelText(){ pendingText=null; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; }
-textEntry.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    const v=textEntry.value.trim();
-    if(v&&pendingText){
-      annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
-      undoStack.push({k:'anno'});
+function commitTextEntry(fromBlur){
+  const v=textEntry.value.trim();
+  if(editIdx>=0){
+    const a=annos[editIdx];
+    if(a){
+      if(v){
+        undoStack.push({k:'markedit',i:editIdx,prev:{...a}});
+        a.text=v; const i=editIdx; cancelText(); selectMark(i); sync(); return;
+      }
+      if(fromBlur){ cancelText(); sync(); return; }              // accidental click-away keeps the label
+      const rm=annos.splice(editIdx,1)[0];
+      undoStack.push({k:'delAnno',i:editIdx,a:rm});
+      clearSel(); cancelText(); sync(); return;
     }
-    cancelText(); sync();
+  } else if(v&&pendingText){
+    annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
+    undoStack.push({k:'anno'});
+    cancelText(); selectMark(annos.length-1); sync(); return;
   }
+  cancelText(); sync();
+}
+function cancelText(){ pendingText=null; editIdx=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; render(); }
+textEntry.addEventListener('keydown',e=>{
+  if(e.key==='Enter')commitTextEntry(false);
   if(e.key==='Escape')cancelText();
   e.stopPropagation();
 });
-textEntry.addEventListener('blur',()=>{
-  const v=textEntry.value.trim();
-  if(v&&pendingText){
-    annos.push({t:'text',x:pendingText.x,y:pendingText.y,text:v,c:color,size:textSize()});
-    undoStack.push({k:'anno'});
-    cancelText(); sync();
-  }else cancelText();
-});
+textEntry.addEventListener('input',()=>{ textEntry.size=Math.max(6,textEntry.value.length+2); });
+textEntry.addEventListener('blur',()=>commitTextEntry(true));
 
 /* ---------------- edit ops ---------------- */
 function undo(){

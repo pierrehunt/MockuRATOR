@@ -89,6 +89,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.17.1** — Text polish: the entry box is WYSIWYG (true size and colour, aligned where the label lands), new labels auto-select, double-click any label to edit it in place, double-click empty canvas for a quick label
 - **1.17.0** — Text labels are first-class items: selectable, draggable, resizable, recolourable, editable, listed in Items
 - **1.16.3** — Text tool fixed: the browser was blurring the label input the instant it opened; typing also now commits on click-away instead of being discarded
 - **1.16.2** — Handles are live in every tool (visible means grabbable), hover cursors everywhere, and selecting from Items switches to Move
