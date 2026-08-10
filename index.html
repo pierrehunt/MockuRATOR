@@ -95,7 +95,12 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
   padding:4px 12px;cursor:pointer;color:var(--ink2)}
 #helpClose:hover{background:#f0eee6}
 /* mark editor */
-#markCap{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#fff}
+.sel-hl{background:#f4faf7;border:1px solid #bfe3d6;border-radius:10px;padding:12px !important;margin:-2px 0}
+.capLabel{display:block;font-size:12px;font-weight:600;color:var(--accent);margin:2px 0 4px}
+.capBox{width:100%;height:70px;resize:vertical;border:2px solid var(--accent);border-radius:8px;
+  padding:8px 9px;background:#fff;font-size:14px;line-height:1.35}
+.capBox:focus{outline:none;box-shadow:0 0 0 3px rgba(15,92,78,.15)}
+#selCap{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#fff}
 .markRow{display:flex;gap:8px;margin:10px 0 4px}
 .markRow .msw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
 .markRow .msw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--white) inset}
@@ -137,6 +142,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .piece.markrow{align-items:center}
 .piece .mdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
 .piece .mdot.filled{opacity:.55}
+.warnCount{color:#c26a1a;font-weight:600}
 .piece .px{border:none;background:none;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:4px}
 .piece .px:hover{background:#f2e2e0;color:var(--red)}
 .emptyP{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center}
@@ -248,22 +254,22 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
   <div class="divider" id="divR"></div>
   <aside id="railR" class="rail">
-    <div class="railSec" id="secSel" style="display:none">
+    <div class="railSec sel-hl" id="secSel" style="display:none">
       <h3><span id="selTitle">Selected</span> <button class="flip" data-sec="secSel" title="Move to the other side">⇄</button></h3>
-      <input id="selCap" placeholder="Note this item — what's the issue or change?" autocomplete="off">
+      <label id="selCapLabel" class="capLabel">Note for this item</label>
+      <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
       <div class="markRow" id="markColors" style="display:none"></div>
       <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
         <button class="mini" id="selDup">Duplicate</button>
         <button class="mini danger" id="selDel">Delete</button>
       </div>
-      <div class="railTip small">Click any piece, box, or arrow to edit it here. Every item can carry a note.</div>
     </div>
 
     <div class="railSec" id="secNotes">
-      <h3>Notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
-      <textarea id="notes" placeholder="Overall context — build/version, summary of what to look at."></textarea>
-      <div class="railTip small">Saved in the JSON and printed under the exported PNG. For per-item notes, click the item and use the box above.</div>
+      <h3>Overall notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
+      <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary."></textarea>
+      <div class="railTip small">For a note on a specific item, click it and use the note box above.</div>
     </div>
 
     <div class="railSec" id="secPieces">
@@ -288,7 +294,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.9.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.10.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -501,7 +507,8 @@ function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
   const markCount=annos.filter(a=>a.t==='box'||a.t==='arrow').length;
   const total=slices.length+markCount;
-  $('pieceCount').textContent=total?('· '+total):'';
+  const noNote=slices.filter(s=>!s.cap).length+annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap).length;
+  $('pieceCount').innerHTML=total?('· '+total+(noNote?(' · <span class="warnCount">'+noNote+' without a note</span>'):'')):'';
   if(!total){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> or draw a box/arrow — items appear here, each with its own note.</div>'; return; }
 
   slices.forEach((s,i)=>{
@@ -693,25 +700,27 @@ function selObj(){
   if(sel.kind==='mark')return annos[sel.i];
   return null;
 }
-function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(); }
+function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
 function selectMark(i){
   if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ clearSel(); return; }
-  sel={kind:'mark',i}; selected=-1; openEditor();
+  sel={kind:'mark',i}; selected=-1; openEditor(true);
 }
 function clearSel(){ sel={kind:null,i:-1}; $('secSel').style.display='none'; }
-function openEditor(){
+function openEditor(focus){
   const o=selObj();
   if(!o){ clearSel(); return; }
   const sec=$('secSel'); sec.style.display='flex'; sec.style.flexDirection='column';
   syncEditor();
+  if(focus){ const el=$('selCap'); el.focus(); el.setSelectionRange(el.value.length,el.value.length); }
 }
 function syncEditor(){
   const o=selObj(); if(!o)return;
   const isMark=sel.kind==='mark';
+  const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):'this arrow') : 'this piece';
   $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):'Selected arrow') : 'Selected piece';
+  $('selCapLabel').textContent = 'Note for '+what;
   $('selCap').value=o.cap||'';
-  $('selCap').placeholder = isMark ? "Note this mark — what's the issue or change?" : "Note this piece — what's the issue or change?";
-  // colour + fill only apply to marks
+  $('selCap').placeholder = "What's the issue or change with "+what+"?";
   $('markColors').style.display=isMark?'flex':'none';
   if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
   const fw=$('markFillWrap');
@@ -1130,6 +1139,14 @@ const blobBytes=blob=>blob.arrayBuffer().then(b=>new Uint8Array(b));
 
 $('btnPackage').onclick=async()=>{
   if(!images.length){toast('Nothing to package yet');return;}
+  const noNote=slices.filter(s=>!s.cap).length+annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap).length;
+  if(noNote>0 && !$('btnPackage').dataset.warned){
+    $('btnPackage').dataset.warned='1';
+    toast(noNote+' item'+(noNote>1?'s':'')+' still ha'+(noNote>1?'ve':'s')+' no note — click one in Items to add it, or press Export Package again to send anyway.');
+    setTimeout(()=>{ delete $('btnPackage').dataset.warned; },6000);
+    return;
+  }
+  delete $('btnPackage').dataset.warned;
   toast('Building package…');
   renderBoard(async pngBlob=>{
     if(!pngBlob){toast('Nothing to package yet');return;}
