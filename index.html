@@ -362,7 +362,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.16.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.16.1', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -559,7 +559,7 @@ function render(){
   annos.forEach(a=>drawAnno(ctx,a));
   drawGroupCaps(ctx);
   if(sel.kind==='mark'&&annos[sel.i]){
-    const a=annos[sel.i], hs=9/view.s;
+    const a=annos[sel.i], hs=13/view.s;
     ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5);
     if(a.t==='box'){
       ctx.setLineDash([lw(6),lw(4)]);
@@ -778,7 +778,7 @@ canvas.addEventListener('pointerdown',e=>{
   if(tool==='move'){
     // transform handles on the selected mark take priority
     if(sel.kind==='mark'&&annos[sel.i]){
-      const a=annos[sel.i], hr=12/view.s;
+      const a=annos[sel.i], hr=20/view.s;
       if(a.t==='box'){
         const corners={nw:[a.x,a.y],ne:[a.x+a.w,a.y],sw:[a.x,a.y+a.h],se:[a.x+a.w,a.y+a.h]};
         for(const k in corners){
@@ -815,8 +815,21 @@ canvas.addEventListener('pointerdown',e=>{
   if(tool==='text'){ openText(e,p); return; }
 });
 canvas.addEventListener('pointermove',e=>{
-  if(!drag)return;
   const p=toWorld(e);
+  if(!drag){
+    if(tool==='move'&&sel.kind==='mark'&&annos[sel.i]){
+      const a=annos[sel.i], hr=20/view.s; let cur='default';
+      if(a.t==='box'){
+        if(Math.hypot(p.x-a.x,p.y-a.y)<hr||Math.hypot(p.x-(a.x+a.w),p.y-(a.y+a.h))<hr)cur='nwse-resize';
+        else if(Math.hypot(p.x-(a.x+a.w),p.y-a.y)<hr||Math.hypot(p.x-a.x,p.y-(a.y+a.h))<hr)cur='nesw-resize';
+        else if(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h)cur='move';
+      }else if(a.t==='arrow'){
+        if(Math.hypot(p.x-a.x1,p.y-a.y1)<hr||Math.hypot(p.x-a.x2,p.y-a.y2)<hr)cur='grab';
+      }
+      canvas.style.cursor=cur;
+    }
+    return;
+  }
   if(drag.kind==='pan'){ view.x=drag.ox+(e.clientX-drag.sx); view.y=drag.oy+(e.clientY-drag.sy); }
   else if(drag.kind==='moveSlice'){ const s=slices[drag.i]; s.x=p.x-drag.dx; s.y=p.y-drag.dy; }
   else if(drag.kind==='pen'){

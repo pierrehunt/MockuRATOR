@@ -74,12 +74,22 @@ No build step, no dependencies: download [`index.html`](index.html) (open it on 
 - The capture bookmarklet works on most sites; sites with a strict Content Security Policy block the injected capture script.
 - Clipboard copy on export needs HTTPS — the live link above has it; the PNG download works everywhere, including straight from disk.
 
+## The family
+
+<p align="center">
+  <img src="mockugrab-logo.png" width="46%" alt="MockuGrab — point it, click it, cut it">
+  <img src="mockulog-logo.png" width="46%" alt="MockuLog — errors caught, F12 retired">
+</p>
+
+**MockuGrab** captures any element on any page as a pre-cut PNG. **MockuLog** records console errors and failed requests without ever opening DevTools. Both live in the side panel as drag-to-bookmarks buttons, and both feed the same Export Package.
+
 ## About the name
 
 The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-machine suffix "-RATOR", in the spirit of names like Battlenator and Bazookarator. The oversized sword represents slicing screenshots apart; the copy/paste panels, directional arrow, and callout box represent the core workflow: capture, separate, move, explain, and send.
 
 ## Changelog
 
+- **1.16.1** — Resize handles now actually grabbable: wide hit radius, bigger handles, hover cursors; family logos for MockuGrab and MockuLog
 - **1.16.0** — Mark transforms: move, corner-resize, arrow re-aim and Reverse; bookmarklets now default to the right panel
 - **1.15.0** — 🪲 MockuLog: console/network recorder bookmarklet plus drop-in mockulog.js; log files attach to the board and ship inside the Export Package
 - **1.14.0** — 🎤 voice dictation on every note field; auto-context block in reports (viewport, timestamps, per-screenshot provenance); MockuGrab filenames now carry the source page
