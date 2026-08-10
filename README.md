@@ -1,10 +1,14 @@
+<p align="center"><img src="mockurator-logo.png" width="620" alt="MockuRATOR — Slice it. Mark it. Send it."></p>
+
 # MockuRATOR
+
+> **Slice it. Mark it. Send it.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 ![Single file](https://img.shields.io/badge/single%20file-%E2%89%8826%20KB-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-lightgrey)
 
-✂️ Slice screenshots into pieces, drag them apart, annotate, and export — a single HTML file that runs entirely in your browser.
+MockuRATOR is a free, single-file browser tool for turning screenshots into clear visual feedback. Paste, drop, or open screenshots, slice out important sections, move and duplicate them, then mark them up with arrows, boxes, freehand pen, and text. Finished boards can be saved as JSON, reopened for regression comparisons, and exported as a PNG ready to paste into a chat, issue, or change request.
 
 **Use it live:** https://pierrehunt.github.io/MockuRATOR/ — no install, no signup, nothing to configure.
 
@@ -56,6 +60,16 @@ No build step, no dependencies: download [`index.html`](index.html) (open it on 
 - Desktop-first: built for mouse and keyboard. It opens on phones, but pinch-zoom isn't wired up.
 - The capture bookmarklet works on most sites; sites with a strict Content Security Policy block the injected capture script.
 - Clipboard copy on export needs HTTPS — the live link above has it; the PNG download works everywhere, including straight from disk.
+
+## About the name
+
+The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-machine suffix "-RATOR", in the spirit of names like Battlenator and Bazookarator. The oversized sword represents slicing screenshots apart; the copy/paste panels, directional arrow, and callout box represent the core workflow: capture, separate, move, explain, and send.
+
+## Changelog
+
+- **1.5.0** — Brand identity (logo, icon, favicon), version stamped on exported PNGs and saved JSONs, semantic versioning in the header
+- **1.1–1.4** — Side panel: docked notes, pieces list with thumbnails, capture bookmarklet, autosave and recent boards; movable, resizable panels
+- **1.0** — First release
 
 ## License
 
