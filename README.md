@@ -26,6 +26,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
 - **Annotate** with callout boxes, arrows, freehand pen, and text labels in five colours
+- **🪲 MockuLog — F12 without F12** — a second bookmarklet records console errors, exceptions, and failed network calls on any page (no injected scripts, so it works even where CSP blocks MockuGrab). Click the pill, get a `.txt`, drop it on the board — it lists in Items, appears in the report, and ships inside the Export Package. For your own apps, [`mockulog.js`](mockulog.js) is a one-line drop-in that records from page load
 - **🎤 Voice notes** — a mic button on every note field: click, speak, and your words appear as text while you talk (Web Speech, Chrome/Edge on the live site). Spelling optional, forever
 - **Auto-context for the AI** — every report opens with a Context block: when it was made, the viewport, and where each screenshot came from — 📸 captures record the window they grabbed, MockuGrab files carry the page they came from in their name
 - **📸 Capture any window** — one button opens the system picker: choose any application window (your desktop apps — Python, C#, anything), any browser tab, or a whole screen, and a crisp frame lands straight on the board. No screenshot tool, no save-and-reopen. Captures tabs even on sites whose security policy blocks the bookmarklet, because it photographs pixels instead of entering the page
@@ -78,6 +79,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.15.0** — 🪲 MockuLog: console/network recorder bookmarklet plus drop-in mockulog.js; log files attach to the board and ship inside the Export Package
 - **1.14.0** — 🎤 voice dictation on every note field; auto-context block in reports (viewport, timestamps, per-screenshot provenance); MockuGrab filenames now carry the source page
 - **1.13.0** — 📸 Capture: grab any application window, browser tab, or screen via the system picker, straight onto the board
 - **1.12.0** — Rotating tips card on the empty board plus a full tips list in the ? overlay — the powerful features now introduce themselves
