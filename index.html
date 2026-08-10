@@ -274,6 +274,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
         <table>
           <tr><td class="k">Click a mark (in Move)</td><td>Caption it, recolour it, toggle box fill — in the Selected mark panel</td></tr>
           <tr><td class="k">Fill the box</td><td>Translucent fill for highlighting a whole region</td></tr>
+          <tr><td class="k">Drag / corners / ends</td><td>Move a selected mark, resize a box by its corners, re-aim an arrow by its endpoints; Reverse flips an arrow</td></tr>
         </table>
         <h4>Canvas</h4>
         <table>
@@ -312,6 +313,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
       <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
         <button class="mini" id="selDup">Duplicate</button>
+        <button class="mini" id="selReverse" style="display:none">⇄ Reverse</button>
         <button class="mini" id="selUngroup" style="display:none">Ungroup</button>
         <button class="mini danger" id="selDel">Delete</button>
       </div>
@@ -360,7 +362,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.15.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.16.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -556,6 +558,24 @@ function render(){
 
   annos.forEach(a=>drawAnno(ctx,a));
   drawGroupCaps(ctx);
+  if(sel.kind==='mark'&&annos[sel.i]){
+    const a=annos[sel.i], hs=9/view.s;
+    ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5);
+    if(a.t==='box'){
+      ctx.setLineDash([lw(6),lw(4)]);
+      ctx.strokeRect(a.x-lw(4),a.y-lw(4),a.w+lw(8),a.h+lw(8));
+      ctx.setLineDash([]);
+      [[a.x,a.y],[a.x+a.w,a.y],[a.x,a.y+a.h],[a.x+a.w,a.y+a.h]].forEach(c=>{
+        ctx.fillStyle='#fff'; ctx.fillRect(c[0]-hs/2,c[1]-hs/2,hs,hs);
+        ctx.strokeRect(c[0]-hs/2,c[1]-hs/2,hs,hs);
+      });
+    }else if(a.t==='arrow'){
+      [[a.x1,a.y1],[a.x2,a.y2]].forEach(c=>{
+        ctx.beginPath(); ctx.arc(c[0],c[1],hs*0.75,0,7);
+        ctx.fillStyle='#fff'; ctx.fill(); ctx.stroke();
+      });
+    }
+  }
 
   if(drag){
     if(drag.kind==='slice'){
@@ -756,6 +776,24 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(e.button!==0)return;
   if(tool==='move'){
+    // transform handles on the selected mark take priority
+    if(sel.kind==='mark'&&annos[sel.i]){
+      const a=annos[sel.i], hr=12/view.s;
+      if(a.t==='box'){
+        const corners={nw:[a.x,a.y],ne:[a.x+a.w,a.y],sw:[a.x,a.y+a.h],se:[a.x+a.w,a.y+a.h]};
+        for(const k in corners){
+          if(Math.hypot(p.x-corners[k][0],p.y-corners[k][1])<hr){
+            drag={kind:'resizeBox',i:sel.i,corner:k,orig:{...a}}; return; }
+        }
+      }else if(a.t==='arrow'){
+        if(Math.hypot(p.x-a.x1,p.y-a.y1)<hr){drag={kind:'arrowEnd',i:sel.i,end:1,orig:{...a}};return;}
+        if(Math.hypot(p.x-a.x2,p.y-a.y2)<hr){drag={kind:'arrowEnd',i:sel.i,end:2,orig:{...a}};return;}
+      }
+      // a selected box is body-draggable even when unfilled
+      if(a.t==='box'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
+        drag={kind:'moveAnno',i:sel.i,start:p,orig:{...a},moved:false}; return;
+      }
+    }
     const i=hitSlice(p);
     if(i>=0){
       const s=slices.splice(i,1)[0]; slices.push(s); const ni=slices.length-1;
@@ -763,7 +801,11 @@ canvas.addEventListener('pointerdown',e=>{
       drag={kind:'moveSlice',i:ni,dx:p.x-s.x,dy:p.y-s.y};
     }else{
       const ai=hitAnno(p);
-      if(ai>=0){ drag=null; selectMark(ai); render(); refreshPieces(); return; }
+      if(ai>=0){
+        selectMark(ai);
+        drag={kind:'moveAnno',i:ai,start:p,orig:{...annos[ai]},moved:false};
+        render(); refreshPieces(); return;
+      }
       clearSel(); selected=-1;
     }
     render(); refreshPieces(); return;
@@ -781,6 +823,26 @@ canvas.addEventListener('pointermove',e=>{
     const l=drag.pts[drag.pts.length-1];
     if(Math.hypot(p.x-l.x,p.y-l.y)>2/view.s)drag.pts.push(p);
   }
+  else if(drag.kind==='moveAnno'){
+    const a=annos[drag.i], dx=p.x-drag.start.x, dy=p.y-drag.start.y;
+    if(!drag.moved&&Math.hypot(dx,dy)>3/view.s)drag.moved=true;
+    if(drag.moved){
+      if(a.t==='box'){ a.x=drag.orig.x+dx; a.y=drag.orig.y+dy; }
+      else{ a.x1=drag.orig.x1+dx; a.y1=drag.orig.y1+dy; a.x2=drag.orig.x2+dx; a.y2=drag.orig.y2+dy; }
+    }
+  }
+  else if(drag.kind==='resizeBox'){
+    const a=annos[drag.i], o=drag.orig;
+    let x1=o.x, y1=o.y, x2=o.x+o.w, y2=o.y+o.h;
+    if(drag.corner.indexOf('w')>=0)x1=p.x; if(drag.corner.indexOf('e')>=0)x2=p.x;
+    if(drag.corner.indexOf('n')>=0)y1=p.y; if(drag.corner.indexOf('s')>=0)y2=p.y;
+    a.x=Math.min(x1,x2); a.y=Math.min(y1,y2);
+    a.w=Math.max(8,Math.abs(x2-x1)); a.h=Math.max(8,Math.abs(y2-y1));
+  }
+  else if(drag.kind==='arrowEnd'){
+    const a=annos[drag.i];
+    if(drag.end===1){a.x1=p.x;a.y1=p.y;} else {a.x2=p.x;a.y2=p.y;}
+  }
   else{ drag.b=p; }
   render();
 });
@@ -789,6 +851,8 @@ canvas.addEventListener('pointerup',()=>{
   if(!d){render();return;}
   if(d.kind==='pan'){ setTool(tool); render(); return; }
   if(d.kind==='moveSlice'){ sync(); return; }
+  if(d.kind==='moveAnno'){ if(d.moved)undoStack.push({k:'markedit',i:d.i,prev:d.orig}); sync(); return; }
+  if(d.kind==='resizeBox'||d.kind==='arrowEnd'){ undoStack.push({k:'markedit',i:d.i,prev:d.orig}); sync(); return; }
   if(d.kind==='slice'){ const r=norm(d.a,d.b); if(r.w>6&&r.h>6)makeSlice(r); }
   else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){
     const nb={t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW(),fill:fillDefault};
@@ -886,6 +950,7 @@ function syncEditor(){
   const isGroup=sel.kind==='group';
   const isMark=sel.kind==='mark';
   const grouped=!isGroup&&o.g&&groupById(o.g);
+  $('selReverse').style.display='none';
   if(isGroup){
     const n=groupMembers(o.id).length;
     $('selTitle').textContent='Selected group · '+n+' item'+(n!==1?'s':'');
@@ -915,10 +980,17 @@ function syncEditor(){
     $('markColors').style.display=isMark?'flex':'none';
     if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
   }
+  if(isMark&&!grouped&&o.t==='arrow')$('selReverse').style.display='inline-block';
   const fw=$('markFillWrap');
   fw.style.display=(isMark&&!grouped&&o.t==='box')?'flex':'none';
   if(isMark&&o.t==='box')$('markFill').checked=!!o.fill;
 }
+$('selReverse').onclick=()=>{
+  if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a||a.t!=='arrow')return;
+  undoStack.push({k:'markedit',i:sel.i,prev:{...a}});
+  const tx=a.x1, ty=a.y1; a.x1=a.x2; a.y1=a.y2; a.x2=tx; a.y2=ty;
+  sync();
+};
 $('selOpenGroup').onclick=()=>{ const o=selObj(); if(o&&o.g){ const gi=groups.findIndex(g=>g.id===o.g); if(gi>=0)selectGroup(gi); } };
 $('selUngroup').onclick=()=>{
   if(sel.kind!=='group')return; const gr=groups[sel.i];
@@ -1060,7 +1132,7 @@ if(store.ok){
   });
 }
 const SECS=['secSel','secNotes','secPieces','secBm','secLog','secRecent'];
-const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secBm:'L',secLog:'L',secRecent:'L'};
+const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secBm:'R',secLog:'R',secRecent:'L'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
@@ -1541,6 +1613,7 @@ document.querySelectorAll('.micBtn').forEach(btn=>{
 
 /* ---------------- tips ---------------- */
 const TIPS=[
+  'Selected marks are alive: <b>drag a box</b> to move it, <b>pull its corners</b> to resize, <b>drag an arrow\'s ends</b> to re-aim it — or hit Reverse in the editor.',
   '<b>🪲 MockuLog</b> records console errors and failed requests on any page — no F12. Download the log, drop it on the board, and it ships inside your Export Package for the AI to read.',
   'Hate typing notes? Click the <b>🎤</b> on any note field and just talk — your words appear as text while you speak. Spelling optional forever.',
   '<b>📸 Capture</b> grabs any window on your computer — your desktop apps included — or any browser tab, straight onto the board. No screenshot tool needed. (Live site only.)',

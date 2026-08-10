@@ -32,6 +32,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **📸 Capture any window** — one button opens the system picker: choose any application window (your desktop apps — Python, C#, anything), any browser tab, or a whole screen, and a crisp frame lands straight on the board. No screenshot tool, no save-and-reopen. Captures tabs even on sites whose security policy blocks the bookmarklet, because it photographs pixels instead of entering the page
 - **Built-in tips** — the empty board shows a rotating "Did you know?" card walking through grouping, MockuGrab, packages, autosave and more; the full scrollable list lives in the <kbd>?</kbd> overlay
 - **Group items into issues** — Ctrl-click several rows in Items, hit **Group**: one note and one colour for all of them, one caption pill on the board, and the report writes a single "Issue: … — shown by 4 arrows" line instead of four repeats. New marks drawn while a group is selected join it and inherit its colour. Ungroup any time
+- **Marks are fully editable** — drag a selected box to move it, pull its corner handles to resize, drag an arrow's endpoints to re-aim it, or hit **Reverse** to flip its direction. Every transform is undoable
 - **One editor for everything** — click any piece, box, or arrow to open the **Selected** panel: note it, and for marks also recolour or toggle **Fill**. Pieces and marks both appear in the **Items** list, so you can always get back to any one of them — no hunting under overlapping boxes
 - **Filled regions** — a translucent box fill highlights a whole section (sidebar, button row, a queue). Filled and captioned regions are the strongest report format: "red region = the sidebar, blue region = the buttons"
 - **Notes on every item, in the report** — each piece and each mark carries its own note; the exported report.md lists them all, so "Piece 1: button misaligned" and "Filled region (red): the sidebar" travel as text the AI reads
@@ -79,6 +80,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.16.0** — Mark transforms: move, corner-resize, arrow re-aim and Reverse; bookmarklets now default to the right panel
 - **1.15.0** — 🪲 MockuLog: console/network recorder bookmarklet plus drop-in mockulog.js; log files attach to the board and ship inside the Export Package
 - **1.14.0** — 🎤 voice dictation on every note field; auto-context block in reports (viewport, timestamps, per-screenshot provenance); MockuGrab filenames now carry the source page
 - **1.13.0** — 📸 Capture: grab any application window, browser tab, or screen via the system picker, straight onto the board
