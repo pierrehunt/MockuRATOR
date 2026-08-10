@@ -67,9 +67,16 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.5.1** — Credits: built with Anthropic's Claude; logo artwork by ChatGPT
 - **1.5.0** — Brand identity (logo, icon, favicon), version stamped on exported PNGs and saved JSONs, semantic versioning in the header
 - **1.1–1.4** — Side panel: docked notes, pieces list with thumbnails, capture bookmarklet, autosave and recent boards; movable, resizable panels
 - **1.0** — First release
+
+## Credits
+
+- **Built with [Claude](https://claude.ai) by Anthropic** — the first working version went from idea to running tool in under an hour of conversation, and every release since (side panel, autosave, bookmarklet, versioning) shipped through the same chat.
+- **Logo and icon artwork generated with ChatGPT** (OpenAI), from a Samurai-Jack-inspired brief.
+- Made and maintained by [pierrehunt](https://github.com/pierrehunt).
 
 ## License
 
