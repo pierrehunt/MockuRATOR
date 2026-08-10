@@ -142,6 +142,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .piece.markrow{align-items:center}
 .piece .mdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
 .piece .mdot.filled{opacity:.55}
+.piece .mdot.tdot{color:#fff;font-weight:700;font-size:15px;text-align:center;line-height:26px}
 #tipCard{pointer-events:auto;margin-top:26px;background:var(--white);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:16px 20px;max-width:540px;width:90%}
 .tipHead{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);
@@ -313,6 +314,8 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
       <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
         <button class="mini" id="selDup">Duplicate</button>
+        <button class="mini" id="selSmaller" style="display:none" title="Shrink text">A−</button>
+        <button class="mini" id="selBigger" style="display:none" title="Enlarge text">A+</button>
         <button class="mini" id="selReverse" style="display:none">⇄ Reverse</button>
         <button class="mini" id="selUngroup" style="display:none">Ungroup</button>
         <button class="mini danger" id="selDel">Delete</button>
@@ -362,7 +365,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.16.3', APP_BUILD='2026-08-10';
+const APP_VERSION='1.17.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -523,6 +526,10 @@ function hitAnno(p){
       let t=((p.x-a.x1)*dx+(p.y-a.y1)*dy)/L2; t=Math.max(0,Math.min(1,t));
       const cx=a.x1+t*dx, cy=a.y1+t*dy;
       if(Math.hypot(p.x-cx,p.y-cy)<10/view.s)return i;
+    }else if(a.t==='text'){
+      ctx.font=`600 ${a.size}px ui-sans-serif,system-ui,sans-serif`;
+      const tw=ctx.measureText(a.text||'').width;
+      if(p.x>=a.x-6&&p.x<=a.x+tw+6&&p.y>=a.y-a.size&&p.y<=a.y+a.size*0.3)return i;
     }
   }
   return -1;
@@ -574,6 +581,12 @@ function render(){
         ctx.beginPath(); ctx.arc(c[0],c[1],hs*0.75,0,7);
         ctx.fillStyle='#fff'; ctx.fill(); ctx.stroke();
       });
+    }else if(a.t==='text'){
+      ctx.font=`600 ${a.size}px ui-sans-serif,system-ui,sans-serif`;
+      const tw=ctx.measureText(a.text||'').width;
+      ctx.setLineDash([lw(6),lw(4)]);
+      ctx.strokeRect(a.x-lw(6),a.y-a.size-lw(4),tw+lw(12),a.size*1.35+lw(8));
+      ctx.setLineDash([]);
     }
   }
 
@@ -600,7 +613,7 @@ function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
   groups=groups.filter(g=>groupMembers(g.id).length>0);   // prune empty groups
-  const markCount=annos.filter(a=>a.t==='box'||a.t==='arrow').length;
+  const markCount=annos.filter(a=>a.t==='box'||a.t==='arrow'||a.t==='text').length;
   const total=slices.length+markCount;
   const noNote=slices.filter(s=>!s.cap&&!s.g).length
     +annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap&&!a.g).length
@@ -680,6 +693,21 @@ function refreshPieces(){
   slices.forEach((s,i)=>{ if(!s.g){ const r=mkPieceRow(s,i,false); if(r)wrap.appendChild(r);} });
   annos.forEach((a,i)=>{ if((a.t==='box'||a.t==='arrow')&&!a.g){ const r=mkMarkRow(a,i,false); if(r)wrap.appendChild(r);} });
 
+  annos.forEach((a,i)=>{
+    if(a.t!=='text')return;
+    const on=(sel.kind==='mark'&&sel.i===i);
+    const item=document.createElement('div'); item.className='piece markrow'+(on?' sel':'');
+    const dot=document.createElement('span'); dot.className='mdot tdot'; dot.style.background=a.c; dot.textContent='T';
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent='Text · '+colorName(a.c);
+    const cap=document.createElement('div'); cap.className='pcap'; cap.textContent=a.text||'(empty)';
+    info.append(lbl,cap);
+    const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete text';
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
+    item.onclick=()=>{ msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.append(dot,info,x); wrap.appendChild(item);
+  });
+
   attachments.forEach((at,i)=>{
     const item=document.createElement('div'); item.className='piece attRow';
     const ic=document.createElement('span'); ic.textContent='🪲'; ic.style.fontSize='18px';
@@ -700,7 +728,9 @@ function centerOn(s){
 function centerOnAnno(a){
   const W=canvas.width/dpr, H=canvas.height/dpr;
   let cx,cy;
-  if(a.t==='box'){cx=a.x+a.w/2;cy=a.y+a.h/2;} else {cx=(a.x1+a.x2)/2;cy=(a.y1+a.y2)/2;}
+  if(a.t==='box'){cx=a.x+a.w/2;cy=a.y+a.h/2;}
+  else if(a.t==='text'){cx=a.x+80;cy=a.y-a.size/2;}
+  else {cx=(a.x1+a.x2)/2;cy=(a.y1+a.y2)/2;}
   view.x=W/2-cx*view.s; view.y=H/2-cy*view.s;
 }
 
@@ -845,7 +875,7 @@ canvas.addEventListener('pointermove',e=>{
     const a=annos[drag.i], dx=p.x-drag.start.x, dy=p.y-drag.start.y;
     if(!drag.moved&&Math.hypot(dx,dy)>3/view.s)drag.moved=true;
     if(drag.moved){
-      if(a.t==='box'){ a.x=drag.orig.x+dx; a.y=drag.orig.y+dy; }
+      if(a.t==='box'||a.t==='text'){ a.x=drag.orig.x+dx; a.y=drag.orig.y+dy; }
       else{ a.x1=drag.orig.x1+dx; a.y1=drag.orig.y1+dy; a.x2=drag.orig.x2+dx; a.y2=drag.orig.y2+dy; }
     }
   }
@@ -952,7 +982,7 @@ function boardSnap(){
 function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; msel=[]; openEditor(true); }
 function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
 function selectMark(i){
-  if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ clearSel(); return; }
+  if(i<0||!annos[i]||['box','arrow','text'].indexOf(annos[i].t)<0){ clearSel(); return; }
   sel={kind:'mark',i}; selected=-1; openEditor(true);
 }
 function clearSel(){ sel={kind:null,i:-1}; $('secSel').style.display='none'; }
@@ -969,6 +999,7 @@ function syncEditor(){
   const isMark=sel.kind==='mark';
   const grouped=!isGroup&&o.g&&groupById(o.g);
   $('selReverse').style.display='none';
+  $('selSmaller').style.display='none'; $('selBigger').style.display='none';
   if(isGroup){
     const n=groupMembers(o.id).length;
     $('selTitle').textContent='Selected group · '+n+' item'+(n!==1?'s':'');
@@ -983,8 +1014,8 @@ function syncEditor(){
     return;
   }
   $('selDup').style.display='inline-block'; $('selUngroup').style.display='none';
-  const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):'this arrow') : 'this piece';
-  $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):'Selected arrow') : 'Selected piece';
+  const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):o.t==='text'?'this label':'this arrow') : 'this piece';
+  $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):o.t==='text'?'Selected text':'Selected arrow') : 'Selected piece';
   if(grouped){
     $('selCapWrap').style.display='none';
     $('selGroupHint').style.display='block';
@@ -992,9 +1023,16 @@ function syncEditor(){
   }else{
     $('selCapWrap').style.display='block';
     $('selGroupHint').style.display='none';
-    $('selCapLabel').textContent = 'Note for '+what;
-    $('selCap').value=o.cap||'';
-    $('selCap').placeholder = "What's the issue or change with "+what+"?";
+    if(isMark&&o.t==='text'){
+      $('selCapLabel').textContent='Text of this label';
+      $('selCap').value=o.text||'';
+      $('selCap').placeholder='Edit the label text…';
+      $('selSmaller').style.display='inline-block'; $('selBigger').style.display='inline-block';
+    }else{
+      $('selCapLabel').textContent = 'Note for '+what;
+      $('selCap').value=o.cap||'';
+      $('selCap').placeholder = "What's the issue or change with "+what+"?";
+    }
     $('markColors').style.display=isMark?'flex':'none';
     if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
   }
@@ -1018,7 +1056,14 @@ $('selUngroup').onclick=()=>{
   groups.splice(sel.i,1); clearSel(); sync(); toast('Ungrouped — items keep the colour, notes are their own again.');
 };
 $('selCap').addEventListener('input',()=>{ const o=selObj(); if(!o)return;
-  const v=$('selCap').value.trim(); if(v)o.cap=v; else delete o.cap; render(); refreshPieces(); scheduleAutosave(); });
+  const v=$('selCap').value.trim();
+  if(sel.kind==='mark'&&o.t==='text'){ o.text=v; }
+  else { if(v)o.cap=v; else delete o.cap; }
+  render(); refreshPieces(); scheduleAutosave(); });
+$('selSmaller').onclick=()=>{ const o=selObj(); if(sel.kind!=='mark'||!o||o.t!=='text')return;
+  undoStack.push({k:'markedit',i:sel.i,prev:{...o}}); o.size=Math.max(10,Math.round(o.size/1.2)); sync(); };
+$('selBigger').onclick=()=>{ const o=selObj(); if(sel.kind!=='mark'||!o||o.t!=='text')return;
+  undoStack.push({k:'markedit',i:sel.i,prev:{...o}}); o.size=Math.min(220,Math.round(o.size*1.2)); sync(); };
 $('btnGroup').onclick=()=>{
   if(msel.length<2)return;
   boardSnap();
@@ -1042,7 +1087,7 @@ $('selDup').onclick=()=>{
   const o=selObj(); if(!o)return;
   if(sel.kind==='piece'){ slices.push({...o,x:o.x+28,y:o.y+28}); undoStack.push({k:'slice'}); selectPiece(slices.length-1); }
   else { const c=JSON.parse(JSON.stringify(o));
-    if(c.t==='box'){c.x+=24;c.y+=24;} else {c.x1+=24;c.y1+=24;c.x2+=24;c.y2+=24;}
+    if(c.t==='box'||c.t==='text'){c.x+=24;c.y+=24;} else {c.x1+=24;c.y1+=24;c.x2+=24;c.y2+=24;}
     annos.push(c); undoStack.push({k:'anno'}); selectMark(annos.length-1); }
   sync();
 };
