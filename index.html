@@ -130,7 +130,13 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .piece:hover{border-color:var(--muted)}
 .piece.sel{border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
 .piece canvas{border:1px solid var(--line);border-radius:4px;background:#fff}
-.piece .plbl{font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;flex:1}
+.piece .pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.piece .plbl{font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace}
+.piece .pcap{font-size:12.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.piece .pcap.empty{color:#b7b4a8;font-style:italic}
+.piece.markrow{align-items:center}
+.piece .mdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
+.piece .mdot.filled{opacity:.55}
 .piece .px{border:none;background:none;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:4px}
 .piece .px:hover{background:#f2e2e0;color:var(--red)}
 .emptyP{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center}
@@ -212,7 +218,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
         <h4>Tools</h4>
         <table>
           <tr><td class="k"><span class="kbd">S</span></td><td>Slice — drag a box around a section to cut it out</td></tr>
-          <tr><td class="k"><span class="kbd">V</span></td><td>Move — drag pieces; click a box or arrow to edit it in the panel</td></tr>
+          <tr><td class="k"><span class="kbd">V</span></td><td>Move — drag pieces; click any piece, box, or arrow to edit it</td></tr>
           <tr><td class="k"><span class="kbd">H</span> / hold <span class="kbd">Space</span></td><td>Pan the view</td></tr>
           <tr><td class="k"><span class="kbd">B</span> / <span class="kbd">A</span> / <span class="kbd">P</span> / <span class="kbd">T</span></td><td>Box / Arrow / Pen / Text</td></tr>
         </table>
@@ -242,26 +248,26 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
   <div class="divider" id="divR"></div>
   <aside id="railR" class="rail">
-    <div class="railSec" id="secMark" style="display:none">
-      <h3>Selected mark <button class="flip" data-sec="secMark" title="Move to the other side">⇄</button></h3>
-      <input id="markCap" placeholder="Caption this mark…" autocomplete="off">
-      <div class="markRow" id="markColors"></div>
-      <label class="chk2" id="markFillWrap"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
+    <div class="railSec" id="secSel" style="display:none">
+      <h3><span id="selTitle">Selected</span> <button class="flip" data-sec="secSel" title="Move to the other side">⇄</button></h3>
+      <input id="selCap" placeholder="Note this item — what's the issue or change?" autocomplete="off">
+      <div class="markRow" id="markColors" style="display:none"></div>
+      <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
-        <button class="mini" id="markDup">Duplicate</button>
-        <button class="mini danger" id="markDel">Delete mark</button>
+        <button class="mini" id="selDup">Duplicate</button>
+        <button class="mini danger" id="selDel">Delete</button>
       </div>
-      <div class="railTip small">Tip: switch to Move (V) and click any box or arrow to edit it here.</div>
+      <div class="railTip small">Click any piece, box, or arrow to edit it here. Every item can carry a note.</div>
     </div>
 
     <div class="railSec" id="secNotes">
       <h3>Notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
-      <textarea id="notes" placeholder="e.g. v1.4.2 — Contact card overlaps the sidebar below 1280 px; phone field loses its value on save."></textarea>
-      <div class="railTip small">Saved in the JSON and printed under the exported PNG.</div>
+      <textarea id="notes" placeholder="Overall context — build/version, summary of what to look at."></textarea>
+      <div class="railTip small">Saved in the JSON and printed under the exported PNG. For per-item notes, click the item and use the box above.</div>
     </div>
 
     <div class="railSec" id="secPieces">
-      <h3>Pieces <span id="pieceCount" class="railTip small"></span> <button class="flip" data-sec="secPieces" title="Move to the other side">⇄</button></h3>
+      <h3>Items <span id="pieceCount" class="railTip small"></span> <button class="flip" data-sec="secPieces" title="Move to the other side">⇄</button></h3>
       <div id="pieces"></div>
     </div>
 
@@ -282,7 +288,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 
 <script>
 'use strict';
-const APP_VERSION='1.8.0', APP_BUILD='2026-08-10';
+const APP_VERSION='1.9.0', APP_BUILD='2026-08-10';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -493,27 +499,58 @@ function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 /* ---------------- pieces list ---------------- */
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
-  $('pieceCount').textContent=slices.length?('· '+slices.length):'';
-  if(!slices.length){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> — pieces appear here.</div>'; return; }
+  const markCount=annos.filter(a=>a.t==='box'||a.t==='arrow').length;
+  const total=slices.length+markCount;
+  $('pieceCount').textContent=total?('· '+total):'';
+  if(!total){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> or draw a box/arrow — items appear here, each with its own note.</div>'; return; }
+
   slices.forEach((s,i)=>{
     const im=images[s.im]; if(!im)return;
-    const item=document.createElement('div'); item.className='piece'+(i===selected?' sel':'');
+    const on=(sel.kind==='piece'&&sel.i===i);
+    const item=document.createElement('div'); item.className='piece'+(on?' sel':'');
     const th=document.createElement('canvas');
-    const sc=Math.min(120/s.sw,64/s.sh,1);
+    const sc=Math.min(96/s.sw,52/s.sh,1);
     th.width=Math.max(1,Math.round(s.sw*sc)); th.height=Math.max(1,Math.round(s.sh*sc));
     th.getContext('2d').drawImage(im.img,s.sx,s.sy,s.sw,s.sh,0,0,th.width,th.height);
-    const lbl=document.createElement('div'); lbl.className='plbl';
-    lbl.textContent=Math.round(s.sw)+'×'+Math.round(s.sh);
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent='Piece · '+Math.round(s.sw)+'×'+Math.round(s.sh);
+    const cap=document.createElement('div'); cap.className='pcap'; cap.textContent=s.cap||'no note';
+    if(!s.cap)cap.classList.add('empty');
+    info.append(lbl,cap);
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete piece';
-    x.onclick=ev=>{ ev.stopPropagation(); selected=i; delSelected(); };
-    item.onclick=()=>{ selected=i; centerOn(s); render(); refreshPieces(); };
-    item.append(th,lbl,x); wrap.appendChild(item);
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); sync(); };
+    item.onclick=()=>{ selectPiece(i); centerOn(s); render(); refreshPieces(); };
+    item.append(th,info,x); wrap.appendChild(item);
+  });
+
+  annos.forEach((a,i)=>{
+    if(a.t!=='box'&&a.t!=='arrow')return;
+    const on=(sel.kind==='mark'&&sel.i===i);
+    const item=document.createElement('div'); item.className='piece markrow'+(on?' sel':'');
+    const dot=document.createElement('span'); dot.className='mdot'; dot.style.background=a.c;
+    if(a.t==='box'&&a.fill)dot.classList.add('filled');
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl';
+    lbl.textContent=(a.t==='box'?(a.fill?'Region':'Box'):'Arrow')+' · '+colorName(a.c);
+    const cap=document.createElement('div'); cap.className='pcap'; cap.textContent=a.cap||'no note';
+    if(!a.cap)cap.classList.add('empty');
+    info.append(lbl,cap);
+    const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete mark';
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); sync(); };
+    item.onclick=()=>{ selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.append(dot,info,x); wrap.appendChild(item);
   });
 }
 function centerOn(s){
   const W=canvas.width/dpr, H=canvas.height/dpr;
   view.x=W/2-(s.x+s.sw/2)*view.s;
   view.y=H/2-(s.y+s.sh/2)*view.s;
+}
+function centerOnAnno(a){
+  const W=canvas.width/dpr, H=canvas.height/dpr;
+  let cx,cy;
+  if(a.t==='box'){cx=a.x+a.w/2;cy=a.y+a.h/2;} else {cx=(a.x1+a.x2)/2;cy=(a.y1+a.y2)/2;}
+  view.x=W/2-cx*view.s; view.y=H/2-cy*view.s;
 }
 
 /* ---------------- content bounds ---------------- */
@@ -588,14 +625,15 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(e.button!==0)return;
   if(tool==='move'){
-    const i=hitSlice(p); selected=i;
+    const i=hitSlice(p);
     if(i>=0){
-      const s=slices.splice(i,1)[0]; slices.push(s); selected=slices.length-1;
-      drag={kind:'moveSlice',i:selected,dx:p.x-s.x,dy:p.y-s.y};
+      const s=slices.splice(i,1)[0]; slices.push(s); const ni=slices.length-1;
+      selectPiece(ni);
+      drag={kind:'moveSlice',i:ni,dx:p.x-s.x,dy:p.y-s.y};
     }else{
       const ai=hitAnno(p);
       if(ai>=0){ drag=null; selectMark(ai); render(); refreshPieces(); return; }
-      selectMark(-1);
+      clearSel(); selected=-1;
     }
     render(); refreshPieces(); return;
   }
@@ -636,45 +674,67 @@ canvas.addEventListener('wheel',e=>{
   render();
 },{passive:false});
 
-/* ---------------- mark editor (panel: caption + colour + fill) ---------------- */
-let markIndex=-1, fillDefault=false;
+/* ---------------- unified selection + editor (pieces AND marks) ---------------- */
+// sel.kind: 'piece' | 'mark' | null ; sel.i: index into slices or annos
+let sel={kind:null,i:-1}, fillDefault=false;
 const MARK_COLORS=['#e0342b','#f59e0b','#2563eb','#16a34a','#111827'];
-// build the colour swatches once
 (function(){
   const wrap=$('markColors');
   MARK_COLORS.forEach(c=>{
     const b=document.createElement('button'); b.className='msw'; b.style.background=c; b.dataset.c=c;
     b.title=colorName(c);
-    b.onclick=()=>{ if(markIndex<0)return; const a=annos[markIndex]; undoStack.push({k:'markedit',i:markIndex,prev:{...a}}); a.c=c; syncMarkEditor(); sync(); };
+    b.onclick=()=>{ if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a)return;
+      undoStack.push({k:'markedit',i:sel.i,prev:{...a}}); a.c=c; syncEditor(); sync(); };
     wrap.appendChild(b);
   });
 })();
+function selObj(){
+  if(sel.kind==='piece')return slices[sel.i];
+  if(sel.kind==='mark')return annos[sel.i];
+  return null;
+}
+function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(); }
 function selectMark(i){
-  markIndex=i;
-  const sec=$('secMark');
-  if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ sec.style.display='none'; markIndex=-1; return; }
-  sec.style.display='flex'; sec.style.flexDirection='column';
-  syncMarkEditor();
-  $('markCap').focus();
+  if(i<0||!annos[i]||(annos[i].t!=='box'&&annos[i].t!=='arrow')){ clearSel(); return; }
+  sel={kind:'mark',i}; selected=-1; openEditor();
 }
-function syncMarkEditor(){
-  const a=annos[markIndex]; if(!a)return;
-  $('markCap').value=a.cap||'';
-  [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===a.c));
+function clearSel(){ sel={kind:null,i:-1}; $('secSel').style.display='none'; }
+function openEditor(){
+  const o=selObj();
+  if(!o){ clearSel(); return; }
+  const sec=$('secSel'); sec.style.display='flex'; sec.style.flexDirection='column';
+  syncEditor();
+}
+function syncEditor(){
+  const o=selObj(); if(!o)return;
+  const isMark=sel.kind==='mark';
+  $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):'Selected arrow') : 'Selected piece';
+  $('selCap').value=o.cap||'';
+  $('selCap').placeholder = isMark ? "Note this mark — what's the issue or change?" : "Note this piece — what's the issue or change?";
+  // colour + fill only apply to marks
+  $('markColors').style.display=isMark?'flex':'none';
+  if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
   const fw=$('markFillWrap');
-  fw.style.display=a.t==='box'?'flex':'none';
-  $('markFill').checked=!!a.fill;
+  fw.style.display=(isMark&&o.t==='box')?'flex':'none';
+  if(isMark&&o.t==='box')$('markFill').checked=!!o.fill;
 }
-$('markCap').addEventListener('input',()=>{ if(markIndex<0)return; const a=annos[markIndex];
-  if($('markCap').value.trim())a.cap=$('markCap').value.trim(); else delete a.cap; render(); scheduleAutosave(); });
-$('markFill').addEventListener('change',()=>{ if(markIndex<0)return; const a=annos[markIndex];
-  undoStack.push({k:'markedit',i:markIndex,prev:{...a}}); a.fill=$('markFill').checked; fillDefault=a.fill; sync(); });
-$('markDup').onclick=()=>{ if(markIndex<0)return; const a=annos[markIndex];
-  const copy=JSON.parse(JSON.stringify(a));
-  if(copy.t==='box'){copy.x+=24;copy.y+=24;} else {copy.x1+=24;copy.y1+=24;copy.x2+=24;copy.y2+=24;}
-  annos.push(copy); undoStack.push({k:'anno'}); selectMark(annos.length-1); sync(); };
-$('markDel').onclick=()=>{ if(markIndex<0)return; const rm=annos.splice(markIndex,1)[0];
-  undoStack.push({k:'delAnno',i:markIndex,a:rm}); selectMark(-1); sync(); };
+$('selCap').addEventListener('input',()=>{ const o=selObj(); if(!o)return;
+  const v=$('selCap').value.trim(); if(v)o.cap=v; else delete o.cap; render(); refreshPieces(); scheduleAutosave(); });
+$('markFill').addEventListener('change',()=>{ if(sel.kind!=='mark')return; const a=annos[sel.i]; if(!a)return;
+  undoStack.push({k:'markedit',i:sel.i,prev:{...a}}); a.fill=$('markFill').checked; fillDefault=a.fill; syncEditor(); sync(); });
+$('selDup').onclick=()=>{
+  const o=selObj(); if(!o)return;
+  if(sel.kind==='piece'){ slices.push({...o,x:o.x+28,y:o.y+28}); undoStack.push({k:'slice'}); selectPiece(slices.length-1); }
+  else { const c=JSON.parse(JSON.stringify(o));
+    if(c.t==='box'){c.x+=24;c.y+=24;} else {c.x1+=24;c.y1+=24;c.x2+=24;c.y2+=24;}
+    annos.push(c); undoStack.push({k:'anno'}); selectMark(annos.length-1); }
+  sync();
+};
+$('selDel').onclick=()=>{
+  if(sel.kind==='piece'){ const s=slices.splice(sel.i,1)[0]; undoStack.push({k:'delSlice',s,i:sel.i}); }
+  else if(sel.kind==='mark'){ const a=annos.splice(sel.i,1)[0]; undoStack.push({k:'delAnno',i:sel.i,a}); }
+  clearSel(); selected=-1; sync();
+};
 
 /* ---------------- text tool ---------------- */
 const textEntry=$('textEntry');
@@ -705,13 +765,13 @@ textEntry.addEventListener('blur',cancelText);
 function undo(){
   const u=undoStack.pop(); if(!u)return;
   if(u.k==='slice')slices.pop();
-  else if(u.k==='anno'){ annos.pop(); if(markIndex>=annos.length)selectMark(-1); }
+  else if(u.k==='anno')annos.pop();
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
-  else if(u.k==='delAnno'){ annos.splice(u.i,0,u.a); }
+  else if(u.k==='delAnno')annos.splice(u.i,0,u.a);
   else if(u.k==='clear')annos=u.prev;
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
-  else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(markIndex===u.i)syncMarkEditor(); }
-  selected=-1; sync();
+  else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(sel.kind==='mark'&&sel.i===u.i)syncEditor(); }
+  clearSel(); selected=-1; sync();
 }
 function delSelected(){
   if(selected<0)return;
@@ -768,8 +828,8 @@ if(store.ok){
     }catch(e){}
   });
 }
-const SECS=['secMark','secNotes','secPieces','secBm','secRecent'];
-const DEFAULT_SIDE={secMark:'L',secNotes:'L',secPieces:'L',secBm:'L',secRecent:'L'};
+const SECS=['secSel','secNotes','secPieces','secBm','secRecent'];
+const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secBm:'L',secRecent:'L'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
@@ -1011,10 +1071,20 @@ function buildReport(){
   const pens=annos.filter(a=>a.t==='pen').length;
   if(pens)L.push('Plus '+pens+' freehand pen mark'+(pens>1?'s':'')+'.');
   L.push('');
+  if(slices.length){
+    L.push('## Pieces');
+    L.push('');
+    slices.forEach((s,i)=>{
+      const dims=Math.round(s.sw)+'×'+Math.round(s.sh);
+      if(s.cap)L.push('- **Piece '+(i+1)+'** ('+dims+'): '+s.cap);
+      else L.push('- Piece '+(i+1)+' ('+dims+') — no note');
+    });
+    L.push('');
+  }
   L.push('## Board contents');
   L.push('');
   L.push('- Screenshots: '+images.length);
-  L.push('- Sliced sections: '+slices.length+(slices.length?' ('+slices.map(s=>Math.round(s.sw)+'×'+Math.round(s.sh)).join(', ')+')':''));
+  L.push('- Sliced sections: '+slices.length);
   L.push('');
   L.push('---');
   L.push('Made with MockuRATOR — Slice it. Mark it. Send it. · https://pierrehunt.github.io/MockuRATOR/');

@@ -26,9 +26,9 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
 - **Annotate** with callout boxes, arrows, freehand pen, and text labels in five colours
-- **Edit any mark** — switch to Move (V) and click a box or arrow to open the **Selected mark** panel: caption it, recolour it from five swatches, or toggle **Fill** on a box. No colour mode to remember — set colour on the mark itself, after drawing
+- **One editor for everything** — click any piece, box, or arrow to open the **Selected** panel: note it, and for marks also recolour or toggle **Fill**. Pieces and marks both appear in the **Items** list, so you can always get back to any one of them — no hunting under overlapping boxes
 - **Filled regions** — a translucent box fill highlights a whole section (sidebar, button row, a queue). Filled and captioned regions are the strongest report format: "red region = the sidebar, blue region = the buttons"
-- **Captions in the report** — every box and arrow is listed by number, colour, fill, and caption in the exported report.md, so a red box and a blue box each say exactly what they mean
+- **Notes on every item, in the report** — each piece and each mark carries its own note; the exported report.md lists them all, so "Piece 1: button misaligned" and "Filled region (red): the sidebar" travel as text the AI reads
 - **Keyboard help** — press <kbd>?</kbd> any time for the full shortcuts overlay
 - **Export PNG** — auto-named `project-date.png`, your notes printed underneath, and copied to the clipboard so you can paste it straight into a chat
 - **Export Package** — one click bundles a `.zip` (named `project-date.zip`) containing the annotated **board.png**, a readable **report.md** the AI can parse (project, notes, and every text label you placed), and the reload **board.json**. Built with a tiny dependency-free ZIP writer — no libraries, still one file
@@ -73,6 +73,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 ## Changelog
 
 - **1.5.2** — Lightweight social-preview card (WhatsApp and friends reject large preview images)
+- **1.9.0** — Unified selection: pieces and marks share one editor and one Items list; every item (piece or mark) can carry its own note, listed per item in the report
 - **1.8.0** — Selected-mark editor (caption + recolour + fill toggle); translucent filled regions; readable hint bar and a `?` shortcuts overlay
 - **1.7.0** — Per-mark captions: click a box or arrow in Move mode to caption it; captions render on the board and group by mark in the report
 - **1.6.0** — Export Package: one-click ZIP with the annotated PNG, an AI-readable report.md, and the reload JSON (dependency-free ZIP writer)
