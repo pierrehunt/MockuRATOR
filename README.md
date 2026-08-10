@@ -99,6 +99,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.17.3** — Clearer prompt buttons (package / analysis / install), hardened analysis prompt that catches wrong-file attachments, new AI install prompt, and version-stamped MockuLog recorders
 - **1.17.2** — mockulog.js is a real link in the panel; one-click "Copy AI prompt" buttons beside both bookmarklets; hand-off prompts in the ? overlay and README
 - **1.17.1** — Text polish: the entry box is WYSIWYG (true size and colour, aligned where the label lands), new labels auto-select, double-click any label to edit it in place, double-click empty canvas for a quick label
 - **1.17.0** — Text labels are first-class items: selectable, draggable, resizable, recolourable, editable, listed in Items

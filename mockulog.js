@@ -1,4 +1,4 @@
-/* MockuLog — drop-in console & network recorder for your own apps.
+/* MockuLog v1.1.0 — drop-in console & network recorder for your own apps.
  * Part of MockuRATOR · https://pierrehunt.github.io/MockuRATOR/ · MIT
  *
  * Use: add ONE line to your dev build (or hotlink the hosted copy):
@@ -93,6 +93,7 @@
 
   L.save = function () {
     var head = 'MockuLog - console and network telemetry\n' +
+      'Recorder: MockuLog v1.1.0 (drop-in)\n' +
       'Page: ' + location.href + '\n' +
       'Title: ' + document.title + '\n' +
       'UA: ' + navigator.userAgent + '\n' +
