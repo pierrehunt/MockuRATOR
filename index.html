@@ -388,7 +388,7 @@ a.plainlink:hover{color:#137059}
         <button class="mini" id="btnMselClear">Clear selection</button>
       </div>
       <div id="pieces"></div>
-      <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group: one note, one colour for all.</div>
+      <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group. To grow a group: click its row, Ctrl-click more items, then Add.</div>
     </div>
 
     <div class="railSec" id="secSnap">
@@ -419,7 +419,7 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.18.0', APP_BUILD='2026-08-11';
+const APP_VERSION='1.19.0', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -673,8 +673,9 @@ function refreshPieces(){
     +annos.filter(a=>(a.t==='box'||a.t==='arrow')&&!a.cap&&!a.g).length
     +groups.filter(g=>!g.cap).length;
   $('pieceCount').innerHTML=total?('· '+total+(noNote?(' · <span class="warnCount">'+noNote+' without a note</span>'):'')):'';
-  $('groupBar').style.display=msel.length>=2?'flex':'none';
-  $('btnGroup').textContent='Group selected ('+msel.length+')';
+  const addMode = sel.kind==='group' && groups[sel.i] && msel.length>=1;
+  $('groupBar').style.display=(msel.length>=2||addMode)?'flex':'none';
+  $('btnGroup').textContent=addMode?('Add to group ('+msel.length+')'):('Group selected ('+msel.length+')');
   if(!total && !attachments.length){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> or draw a box/arrow — items appear here, each with its own note.</div>'; return; }
 
   const mkPieceRow=(s,i,member)=>{
@@ -1131,6 +1132,19 @@ $('selSmaller').onclick=()=>{ const o=selObj(); if(sel.kind!=='mark'||!o||o.t!==
 $('selBigger').onclick=()=>{ const o=selObj(); if(sel.kind!=='mark'||!o||o.t!=='text')return;
   undoStack.push({k:'markedit',i:sel.i,prev:{...o}}); o.size=Math.min(220,Math.round(o.size*1.2)); sync(); };
 $('btnGroup').onclick=()=>{
+  if(sel.kind==='group'&&groups[sel.i]&&msel.length>=1){
+    const gr=groups[sel.i], gi=sel.i;
+    boardSnap();
+    msel.forEach(key=>{
+      const [kind,idx]=key.split(':'); const i=+idx;
+      if(kind==='mark'&&annos[i]){ annos[i].g=gr.id; annos[i].c=gr.c; }
+      if(kind==='piece'&&slices[i]) slices[i].g=gr.id;
+    });
+    msel=[];
+    selectGroup(gi); sync();
+    toast('Added — the group\'s note and colour now cover them too.');
+    return;
+  }
   if(msel.length<2)return;
   boardSnap();
   const gid=nextGid++;
@@ -1289,8 +1303,8 @@ if(store.ok){
     }catch(e){}
   });
 }
-const SECS=['secSel','secNotes','secPieces','secSnap','secBm','secLog','secRecent'];
-const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secSnap:'R',secBm:'R',secLog:'R',secRecent:'L'};
+const SECS=['secNotes','secSel','secPieces','secSnap','secBm','secLog','secRecent'];
+const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
