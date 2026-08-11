@@ -22,6 +22,10 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 
 ## Features
 
+### 🆕 Wireframe mode — *van agterkant voor*
+Design the UI **before** it exists. A palette of 16 hand-sketched widgets (button, input, select, checkbox, toggle, navbar, card, table…) drags straight onto the board — resize, group, and annotate them with the same tools you use on screenshots. **Double-click renames** a widget; its **note says what it does** ("submits to /api/orders"). Three starter layouts (Login, Dashboard, Settings) place whole screens in one click. The exported report gains a **"Screens & components" build spec** any AI can execute — plus a UX conscience: unlabeled widgets and missing behaviour notes are flagged in the panel *and* travel in the report, so the builder sees them too. Low-fidelity on purpose: sketchy widgets say "argue about intent, not pixels."
+
+
 - **Paste, drop, or open** one or more screenshots (Ctrl+V works)
 - **Slice** — drag a box around any section to cut it out as a free-moving piece; the original dims where you've already cut
 - **Move** pieces anywhere; **duplicate** them for before/after comparisons
@@ -99,6 +103,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.21.0** — 🎉 Wireframe mode: 16 sketch-dialect widgets, drag-to-place, in-place rename, behaviour notes, starter layouts, spec-flavoured report with UX conscience — the balsamic release
 - **1.20.0** — 🎨 Colour themes: Paper, High contrast (glasses-friendly), Dark, and Katana — one header button cycles and remembers; the canvas mat and exports stay light so marks stay readable
 - **1.19.0** — Overall Notes tops the panel; Recent Boards joins the right rail below the tools; groups can now adopt: select a group, Ctrl-click items, Add — note and colour extend automatically
 - **1.18.0** — Compact panel: each tool is one button plus an ⓘ modal holding the full guide and copy buttons (your own frontend pattern, returned with thanks); Ctrl-click grouping now counts the already-selected item automatically
