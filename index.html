@@ -162,6 +162,14 @@ a.plainlink{color:var(--accent);text-decoration:underline}
 .bmrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 6px}
 .bmrow .bm{margin:0}
 .bmrow .mini{margin:0}
+.mini.info{border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;color:var(--accent)}
+#toolModal{position:fixed;inset:0;background:rgba(30,28,23,.45);display:none;align-items:center;justify-content:center;z-index:60}
+#toolModal .toolCard{background:#f7f4ea;max-width:540px;width:92%;border-radius:12px;padding:20px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative;max-height:82vh;overflow:auto;font-size:14px;line-height:1.55;color:var(--ink2)}
+#toolModal h4{margin:0 0 10px;color:var(--ink)}
+#toolModal p{margin:0 0 10px}
+#toolClose{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted)}
+#toolClose:hover{color:var(--ink)}
 a.plainlink:hover{color:#137059}
 .piece.attRow .plbl{color:#7a5c12}
 .micWrap{position:relative}
@@ -264,7 +272,35 @@ a.plainlink:hover{color:#137059}
     </div>
     <div id="hintBar"><b>S</b> slice · <b>V</b> move &amp; edit marks · <span class="kbd">?</span> all shortcuts</div>
     <button id="helpBtn" title="Keyboard shortcuts (press ?)">?</button>
-    <div id="helpOverlay">
+    <div id="toolModal">
+  <div class="toolCard">
+    <button id="toolClose" title="Close">✕</button>
+    <div data-info="snap">
+      <h4>🧰 MockuRATOR Companion — Snap · Grab · Log</h4>
+      <p>One Chrome extension, three powers on every page, all on a <b>right-click</b>:</p>
+      <p><b>📸 Full-page snap</b> — the whole page top to bottom as one seamless PNG. No scrolling, no stitching.<br>
+      <b>🎯 Element grab</b> — hover highlights, click downloads it pre-cut. Works even on strict-CSP sites that block the bookmarklet.<br>
+      <b>🪲 One-click MockuLog</b> — arms the recorder instantly (badge shows REC); right-click again saves the log. No bookmarklet, no reload ritual.</p>
+      <p><b>Install once (30 seconds):</b> unzip → <span class="mono">chrome://extensions</span> → Developer mode → Load unpacked → pin it. Yours forever; a Web Store submission kit is inside if you ever want one-click installs for others.</p>
+    </div>
+    <div data-info="grab">
+      <h4>📷 MockuGrab — the capture bookmarklet</h4>
+      <p><b>Setup:</b> drag the MockuGrab button to your bookmarks bar (once).</p>
+      <p><b>Use:</b> on any page, click it, hover the element you want — it highlights — then click. A pre-cut PNG downloads, named after the page, ready to paste here. <b>Esc</b> cancels.</p>
+      <p>Works on most sites; some strict sites block injected scripts — for those, use the Companion's 🎯 element grab instead.</p>
+      <div class="bmrow"><button class="mini" id="bmCopy">Copy code</button><button class="mini" id="bmPromptCopy" title="Paste into any AI chat together with your Export Package zip">Copy package prompt</button></div>
+    </div>
+    <div data-info="log">
+      <h4>🪲 MockuLog — F12 without F12</h4>
+      <p>Your app knows why it's broken — MockuLog writes the confession down so you never open DevTools again.</p>
+      <p><b>How:</b> drag the 🪲 button to your bookmarks bar once. On any misbehaving page: click it (a small counter pill appears), <b>reload the page</b> so it hears everything, do the thing that breaks, then click the pill — a .txt log downloads.</p>
+      <p><b>Then:</b> drop that .txt onto this board. It lists under Items, rides inside your Export Package, and the report tells the AI to read it. Errors, failed requests, timings — all named, all timestamped.</p>
+      <p>For your own apps there's a drop-in version: <a class="mono plainlink" href="mockulog.js" target="_blank" rel="noopener">mockulog.js</a> — one script tag and every dev build records itself (the install prompt below has any AI wire it in, dev-only).</p>
+      <div class="bmrow"><button class="mini" id="bmLogCopy">Copy code</button><button class="mini" id="logPromptCopy" title="Paste into any AI chat together with a captured mockulog-….txt">Copy analysis prompt</button><button class="mini" id="logInstallCopy" title="Paste into any AI chat to have it wire the recorder into your own app, dev-only">Copy install prompt</button></div>
+    </div>
+  </div>
+</div>
+<div id="helpOverlay">
       <div id="helpCard">
         <button id="helpClose">Close</button>
         <h2>MockuRATOR shortcuts</h2>
@@ -352,32 +388,25 @@ a.plainlink:hover{color:#137059}
         <button class="mini" id="btnMselClear">Clear selection</button>
       </div>
       <div id="pieces"></div>
-      <div class="railTip small">Ctrl-click rows to select several, then Group — one note and one colour for all of them.</div>
+      <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group: one note, one colour for all.</div>
     </div>
 
     <div class="railSec" id="secSnap">
       <h3>Companion — Snap · Grab · Log <button class="flip" data-sec="secSnap" title="Move to the other side">⇄</button></h3>
-      <div class="railTip">One Chrome extension, three powers on every page: <b>📸 full-page snap</b> (whole page, no stitching), <b>🎯 element grab</b> (works even where CSP blocks the bookmarklet), and <b>🪲 one-click MockuLog</b> (no bookmarklet, no reload ritual). Right-click anywhere.</div>
-      <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a></div>
-      <div class="railTip small">Unzip, then <span class="mono">chrome://extensions</span> → Developer mode → Load unpacked. Install once, yours forever — a Web Store submission kit is included if you ever want one-click installs.</div>
+      <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a><button class="mini info" data-tool="snap" title="What is this + how to install">ⓘ</button></div>
+      <div class="railTip small">Full page · element grab · one-click log — right-click anywhere.</div>
     </div>
 
     <div class="railSec" id="secBm">
       <h3>Capture bookmarklet <button class="flip" data-sec="secBm" title="Move to the other side">⇄</button></h3>
-      <div class="railTip">Drag this button to your bookmarks bar. On any page, click it, hover an element, click — it downloads as a PNG, pre-cut and ready to paste here.</div>
-      <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a></div>
-      <div class="bmrow"><button class="mini" id="bmCopy">Copy code</button><button class="mini" id="bmPromptCopy" title="Paste into any AI chat together with your Export Package zip">Copy package prompt</button></div>
-      <div class="railTip small">Works on most sites; some strict sites block injected scripts. Esc cancels.</div>
+      <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a><button class="mini info" data-tool="grab" title="How it works + copy buttons">ⓘ</button></div>
+      <div class="railTip small">Drag to your bookmarks bar — then click any element on any page.</div>
     </div>
 
     <div class="railSec" id="secLog">
       <h3>MockuLog — F12 without F12 <button class="flip" data-sec="secLog" title="Move to the other side">⇄</button></h3>
-      <div class="railTip">Your app knows why it's broken — MockuLog writes the confession down so you never open F12 again.</div>
-      <div class="railTip"><b>How:</b> drag the 🪲 button to your bookmarks bar once. On any misbehaving page: click it (a small counter pill appears), <b>reload the page</b> so it hears everything, do the thing that breaks, then click the pill — a .txt log downloads.</div>
-      <div class="railTip"><b>Then:</b> drop that .txt onto this board. It lists under Items, rides inside your Export Package, and the report tells the AI to read it. Errors, failed requests, timings — all named, all timestamped.</div>
-      <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a></div>
-      <div class="bmrow"><button class="mini" id="bmLogCopy">Copy code</button><button class="mini" id="logPromptCopy" title="Paste into any AI chat together with a captured mockulog-….txt">Copy analysis prompt</button><button class="mini" id="logInstallCopy" title="Paste into any AI chat to have it wire the recorder into your own app, dev-only">Copy install prompt</button></div>
-      <div class="railTip small">No injected scripts — works even where MockuGrab is blocked. Arm it, then reload the page to catch everything. Drop-in version for your own apps: <a class="mono plainlink" href="mockulog.js" target="_blank" rel="noopener">mockulog.js</a> — one script tag and every dev build records itself.</div>
+      <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a><button class="mini info" data-tool="log" title="The full guide + copy buttons">ⓘ</button></div>
+      <div class="railTip small">Records errors & failed requests on any page — no F12, ever.</div>
     </div>
 
     <div class="railSec" id="secRecent">
@@ -390,7 +419,7 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.17.5', APP_BUILD='2026-08-11';
+const APP_VERSION='1.18.0', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -665,7 +694,7 @@ function refreshPieces(){
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete piece';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
-      if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
       msel=[]; setTool('move'); selectPiece(i); centerOn(s); render(); refreshPieces();
     };
     item.append(th,info,x); return item;
@@ -685,7 +714,7 @@ function refreshPieces(){
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete mark';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
-      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
       msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces();
     };
     item.append(dot,info,x); return item;
@@ -1007,6 +1036,14 @@ function boardSnap(){
     slices:JSON.parse(JSON.stringify(slices)),
     annos:JSON.parse(JSON.stringify(annos)),
     groups:JSON.parse(JSON.stringify(groups))});
+}
+function seedMsel(clickKey){
+  if(msel.length)return;
+  if(sel.kind==='piece'&&slices[sel.i]&&!slices[sel.i].g){
+    const sk='piece:'+sel.i; if(sk!==clickKey)msel.push(sk);
+  }else if(sel.kind==='mark'&&annos[sel.i]&&!annos[sel.i].g&&(annos[sel.i].t==='box'||annos[sel.i].t==='arrow')){
+    const sk='mark:'+sel.i; if(sk!==clickKey)msel.push(sk);
+  }
 }
 function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; msel=[]; openEditor(true); }
 function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
@@ -1731,6 +1768,16 @@ document.querySelectorAll('.micBtn').forEach(btn=>{
     }catch(err){ dictating=null; toast('Could not start dictation.'); }
   });
 });
+
+/* ---------------- tool info modal ---------------- */
+const toolModal=$('toolModal');
+function openTool(k){
+  toolModal.style.display='flex';
+  toolModal.querySelectorAll('[data-info]').forEach(d=>d.style.display=d.dataset.info===k?'block':'none');
+}
+document.querySelectorAll('.mini.info').forEach(b=>b.onclick=()=>openTool(b.dataset.tool));
+$('toolClose').onclick=()=>{toolModal.style.display='none';};
+toolModal.addEventListener('click',e=>{ if(e.target===toolModal)toolModal.style.display='none'; });
 
 /* ---------------- AI hand-off prompts ---------------- */
 const AI_PROMPTS={

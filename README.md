@@ -99,6 +99,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.18.0** — Compact panel: each tool is one button plus an ⓘ modal holding the full guide and copy buttons (your own frontend pattern, returned with thanks); Ctrl-click grouping now counts the already-selected item automatically
 - **1.17.5** — MockuSnap grows into the 🧰 MockuRATOR Companion: one extension with full-page Snap, element Grab (CSP-proof), and one-click MockuLog injection, plus a Chrome Web Store submission kit
 - **1.17.4** — 📸 MockuSnap: our own full-page-screenshot Chrome extension (one click, whole page, no stitching, load-unpacked, hosted in the repo); panel cleanup with tidy button rows and a proper MockuLog explainer; drawing while a group is selected no longer auto-joins the group
 - **1.17.3** — Clearer prompt buttons (package / analysis / install), hardened analysis prompt that catches wrong-file attachments, new AI install prompt, and version-stamped MockuLog recorders
