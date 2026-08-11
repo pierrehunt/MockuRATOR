@@ -159,6 +159,9 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .tipsList li{margin-bottom:7px}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
 a.plainlink{color:var(--accent);text-decoration:underline}
+.bmrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 6px}
+.bmrow .bm{margin:0}
+.bmrow .mini{margin:0}
 a.plainlink:hover{color:#137059}
 .piece.attRow .plbl{color:#7a5c12}
 .micWrap{position:relative}
@@ -352,17 +355,28 @@ a.plainlink:hover{color:#137059}
       <div class="railTip small">Ctrl-click rows to select several, then Group — one note and one colour for all of them.</div>
     </div>
 
+    <div class="railSec" id="secSnap">
+      <h3>Companion — Snap · Grab · Log <button class="flip" data-sec="secSnap" title="Move to the other side">⇄</button></h3>
+      <div class="railTip">One Chrome extension, three powers on every page: <b>📸 full-page snap</b> (whole page, no stitching), <b>🎯 element grab</b> (works even where CSP blocks the bookmarklet), and <b>🪲 one-click MockuLog</b> (no bookmarklet, no reload ritual). Right-click anywhere.</div>
+      <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a></div>
+      <div class="railTip small">Unzip, then <span class="mono">chrome://extensions</span> → Developer mode → Load unpacked. Install once, yours forever — a Web Store submission kit is included if you ever want one-click installs.</div>
+    </div>
+
     <div class="railSec" id="secBm">
       <h3>Capture bookmarklet <button class="flip" data-sec="secBm" title="Move to the other side">⇄</button></h3>
       <div class="railTip">Drag this button to your bookmarks bar. On any page, click it, hover an element, click — it downloads as a PNG, pre-cut and ready to paste here.</div>
-      <a id="bmLink" class="bm" href="#">📷 MockuGrab</a><button class="mini" id="bmCopy">Copy code</button><button class="mini" id="bmPromptCopy" title="Paste into any AI chat together with your Export Package zip">Copy package prompt</button>
+      <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a></div>
+      <div class="bmrow"><button class="mini" id="bmCopy">Copy code</button><button class="mini" id="bmPromptCopy" title="Paste into any AI chat together with your Export Package zip">Copy package prompt</button></div>
       <div class="railTip small">Works on most sites; some strict sites block injected scripts. Esc cancels.</div>
     </div>
 
     <div class="railSec" id="secLog">
       <h3>MockuLog — F12 without F12 <button class="flip" data-sec="secLog" title="Move to the other side">⇄</button></h3>
-      <div class="railTip">Drag this to your bookmarks bar. On any page: click to start recording errors and failed requests, then click the 🪲 pill to download the log — and drop that file here to attach it to your report.</div>
-      <a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a><button class="mini" id="bmLogCopy">Copy code</button><button class="mini" id="logPromptCopy" title="Paste into any AI chat together with a captured mockulog-….txt">Copy analysis prompt</button><button class="mini" id="logInstallCopy" title="Paste into any AI chat to have it wire the recorder into your own app, dev-only">Copy install prompt</button>
+      <div class="railTip">Your app knows why it's broken — MockuLog writes the confession down so you never open F12 again.</div>
+      <div class="railTip"><b>How:</b> drag the 🪲 button to your bookmarks bar once. On any misbehaving page: click it (a small counter pill appears), <b>reload the page</b> so it hears everything, do the thing that breaks, then click the pill — a .txt log downloads.</div>
+      <div class="railTip"><b>Then:</b> drop that .txt onto this board. It lists under Items, rides inside your Export Package, and the report tells the AI to read it. Errors, failed requests, timings — all named, all timestamped.</div>
+      <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a></div>
+      <div class="bmrow"><button class="mini" id="bmLogCopy">Copy code</button><button class="mini" id="logPromptCopy" title="Paste into any AI chat together with a captured mockulog-….txt">Copy analysis prompt</button><button class="mini" id="logInstallCopy" title="Paste into any AI chat to have it wire the recorder into your own app, dev-only">Copy install prompt</button></div>
       <div class="railTip small">No injected scripts — works even where MockuGrab is blocked. Arm it, then reload the page to catch everything. Drop-in version for your own apps: <a class="mono plainlink" href="mockulog.js" target="_blank" rel="noopener">mockulog.js</a> — one script tag and every dev build records itself.</div>
     </div>
 
@@ -376,7 +390,7 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.17.3', APP_BUILD='2026-08-10';
+const APP_VERSION='1.17.5', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -915,12 +929,10 @@ canvas.addEventListener('pointerup',()=>{
   if(d.kind==='slice'){ const r=norm(d.a,d.b); if(r.w>6&&r.h>6)makeSlice(r); }
   else if(d.kind==='box'){ const r=norm(d.a,d.b); if(r.w>4&&r.h>4){
     const nb={t:'box',x:r.x,y:r.y,w:r.w,h:r.h,c:color,lw:strokeW(),fill:fillDefault};
-    if(sel.kind==='group'&&groups[sel.i]){ nb.g=groups[sel.i].id; nb.c=groups[sel.i].c; annos.push(nb); undoStack.push({k:'anno'}); openEditor(false); }
-    else { annos.push(nb); undoStack.push({k:'anno'}); selectMark(annos.length-1); } } }
+    annos.push(nb); undoStack.push({k:'anno'}); selectMark(annos.length-1); } }
   else if(d.kind==='arrow'){ if(Math.hypot(d.b.x-d.a.x,d.b.y-d.a.y)>6){
     const na={t:'arrow',x1:d.a.x,y1:d.a.y,x2:d.b.x,y2:d.b.y,c:color,lw:strokeW()};
-    if(sel.kind==='group'&&groups[sel.i]){ na.g=groups[sel.i].id; na.c=groups[sel.i].c; annos.push(na); undoStack.push({k:'anno'}); openEditor(false); }
-    else { annos.push(na); undoStack.push({k:'anno'}); selectMark(annos.length-1); } } }
+    annos.push(na); undoStack.push({k:'anno'}); selectMark(annos.length-1); } }
   else if(d.kind==='pen'){ if(d.pts.length>1){annos.push({t:'pen',pts:d.pts,c:color,lw:strokeW()});undoStack.push({k:'anno'});} }
   sync();
 });
@@ -1240,8 +1252,8 @@ if(store.ok){
     }catch(e){}
   });
 }
-const SECS=['secSel','secNotes','secPieces','secBm','secLog','secRecent'];
-const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secBm:'R',secLog:'R',secRecent:'L'};
+const SECS=['secSel','secNotes','secPieces','secSnap','secBm','secLog','secRecent'];
+const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secSnap:'R',secBm:'R',secLog:'R',secRecent:'L'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
@@ -1753,7 +1765,7 @@ const TIPS=[
   'Boards <b>autosave</b> in your browser as you work — close the tab, come back, and pick up from Recent boards.',
   'Type a <b>project name</b> before exporting: every file names itself <i>project-date</i>, and your downloads folder becomes a regression trail.',
   'Make the layout yours: every panel section has a <b>⇄</b> to swap sides, and the divider beside the canvas drag-resizes the panel.',
-  'Draw a new arrow while a <b>group</b> is selected — it joins the group and inherits its colour automatically.',
+  'The <b>🧰 Companion</b> extension (in the panel) puts Snap, Grab, and MockuLog on a right-click — full pages, single elements, and console recording, even on CSP-locked sites.',
   '<b>Ctrl+D</b> duplicates the selected piece — perfect for before/after mockups. Move the copy where the change should go.',
   'Press <b>?</b> any time for the full shortcut list — including everything on this tour.'
 ];
