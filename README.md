@@ -99,6 +99,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.20.0** — 🎨 Colour themes: Paper, High contrast (glasses-friendly), Dark, and Katana — one header button cycles and remembers; the canvas mat and exports stay light so marks stay readable
 - **1.19.0** — Overall Notes tops the panel; Recent Boards joins the right rail below the tools; groups can now adopt: select a group, Ctrl-click items, Add — note and colour extend automatically
 - **1.18.0** — Compact panel: each tool is one button plus an ⓘ modal holding the full guide and copy buttons (your own frontend pattern, returned with thanks); Ctrl-click grouping now counts the already-selected item automatically
 - **1.17.5** — MockuSnap grows into the 🧰 MockuRATOR Companion: one extension with full-page Snap, element Grab (CSP-proof), and one-click MockuLog injection, plus a Chrome Web Store submission kit

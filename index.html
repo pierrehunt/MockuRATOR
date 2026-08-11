@@ -19,7 +19,35 @@
 :root{
   --ink:#23221c; --ink2:#2e2d27; --paper:#e9e6dd; --mat:#e2dfd4;
   --line:#cfccc0; --white:#fbfaf7; --accent:#0f5c4e; --red:#e0342b;
-  --muted:#8b887c;
+  --muted:#8b887c; --stage:#e2dfd4;
+}
+/* ---- themes: chrome changes, the canvas mat stays light so marks stay readable ---- */
+html[data-theme="contrast"]{
+  --ink:#000000; --ink2:#111111; --paper:#ffffff; --mat:#f2f2f2;
+  --line:#7a7a7a; --white:#ffffff; --accent:#084c3f; --red:#c41f17;
+  --muted:#3d3d3d; --stage:#ececec;
+}
+html[data-theme="dark"]{
+  --ink:#f0ede3; --ink2:#d8d4c8; --paper:#26241f; --mat:#1e1c18;
+  --line:#4a4740; --white:#32302a; --accent:#4fd1b0; --red:#ff6a5e;
+  --muted:#9d998c; --stage:#d6d3ca;
+}
+html[data-theme="katana"]{
+  --ink:#f3efe4; --ink2:#ddd8ca; --paper:#221b19; --mat:#1a1412;
+  --line:#543934; --white:#2e2320; --accent:#e0342b; --red:#f6b21b;
+  --muted:#a89184; --stage:#ddd8cd;
+}
+html[data-theme="dark"] .capBox, html[data-theme="katana"] .capBox,
+html[data-theme="dark"] textarea, html[data-theme="katana"] textarea,
+html[data-theme="dark"] input, html[data-theme="katana"] input,
+html[data-theme="dark"] .mini, html[data-theme="katana"] .mini,
+html[data-theme="dark"] .piece, html[data-theme="katana"] .piece{
+  background:var(--white); color:var(--ink); border-color:var(--line);
+}
+html[data-theme="dark"] #toolModal .toolCard, html[data-theme="katana"] #toolModal .toolCard{
+  background:var(--paper); color:var(--ink2);
+}
+:root{
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -216,6 +244,7 @@ a.plainlink:hover{color:#137059}
   <input id="projectName" placeholder="Project name (used in file names)">
   <button class="hbtn" id="btnPanel" title="Show or hide the side panel">Panel</button>
   <span class="spacer"></span>
+  <button class="hbtn" id="btnTheme" title="Cycle colour theme — easier on the eyes">🎨</button>
   <button class="hbtn" id="btnOpen">Open image</button>
   <button class="hbtn" id="btnCapture" title="Capture any window, browser tab, or screen via the system picker (works on the HTTPS site)">📸 Capture</button>
   <label class="chk"><input type="checkbox" id="chkOriginal" checked> show originals</label>
@@ -419,7 +448,7 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.19.0', APP_BUILD='2026-08-11';
+const APP_VERSION='1.20.0', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -592,7 +621,7 @@ function hitAnno(p){
 function render(){
   const W=canvas.width/dpr, H=canvas.height/dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle='#e2dfd4';
+  ctx.fillStyle=STAGE_BG;
   ctx.fillRect(0,0,W,H);
   ctx.translate(view.x,view.y); ctx.scale(view.s,view.s);
   const lw=px=>px/view.s;
@@ -1783,6 +1812,31 @@ document.querySelectorAll('.micBtn').forEach(btn=>{
   });
 });
 
+/* ---------------- colour themes ---------------- */
+const THEMES=[
+  {id:'paper',   name:'Paper (classic)'},
+  {id:'contrast',name:'High contrast — glasses-friendly'},
+  {id:'dark',    name:'Dark'},
+  {id:'katana',  name:'Katana 🗡️'}
+];
+let STAGE_BG='#e2dfd4';
+function applyTheme(id,announce){
+  if(id==='paper')document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',id);
+  try{ localStorage.setItem('mockurator:theme',id); }catch(e){}
+  STAGE_BG=getComputedStyle(document.documentElement).getPropertyValue('--stage').trim()||'#e2dfd4';
+  const t=THEMES.find(t=>t.id===id)||THEMES[0];
+  $('btnTheme').title='Theme: '+t.name+' — click to cycle';
+  if(typeof render==='function')try{render();}catch(e){}
+  if(announce)toast('Theme: '+t.name);
+}
+$('btnTheme').onclick=()=>{
+  const cur=(function(){try{return localStorage.getItem('mockurator:theme')||'paper';}catch(e){return 'paper';}})();
+  const i=THEMES.findIndex(t=>t.id===cur);
+  applyTheme(THEMES[(i+1)%THEMES.length].id,true);
+};
+applyTheme((function(){try{return localStorage.getItem('mockurator:theme')||'paper';}catch(e){return 'paper';}})(),false);
+
 /* ---------------- tool info modal ---------------- */
 const toolModal=$('toolModal');
 function openTool(k){
@@ -1826,6 +1880,7 @@ const TIPS=[
   'Boards <b>autosave</b> in your browser as you work — close the tab, come back, and pick up from Recent boards.',
   'Type a <b>project name</b> before exporting: every file names itself <i>project-date</i>, and your downloads folder becomes a regression trail.',
   'Make the layout yours: every panel section has a <b>⇄</b> to swap sides, and the divider beside the canvas drag-resizes the panel.',
+  'Glasses? Long nights? Click the <b>🎨</b> in the header to cycle themes — High contrast, Dark, and Katana. Your exports stay light and readable either way.',
   'The <b>🧰 Companion</b> extension (in the panel) puts Snap, Grab, and MockuLog on a right-click — full pages, single elements, and console recording, even on CSP-locked sites.',
   '<b>Ctrl+D</b> duplicates the selected piece — perfect for before/after mockups. Move the copy where the change should go.',
   'Press <b>?</b> any time for the full shortcut list — including everything on this tour.'
