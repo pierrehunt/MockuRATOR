@@ -404,6 +404,14 @@ a.plainlink:hover{color:#137059}
       <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
       <div class="markRow2">
         <button class="mini" id="selDup">Duplicate</button>
+        <select class="mini" id="selType" style="display:none" title="Issue type">
+          <option value="">type…</option><option value="bug">bug</option><option value="enhancement">enhancement</option>
+          <option value="question">question</option><option value="praise">praise</option>
+        </select>
+        <select class="mini" id="selSev" style="display:none" title="Severity">
+          <option value="">severity…</option><option value="low">low</option><option value="medium">medium</option>
+          <option value="high">high</option><option value="critical">critical</option>
+        </select>
         <button class="mini" id="selSmaller" style="display:none" title="Shrink text">A−</button>
         <button class="mini" id="selBigger" style="display:none" title="Enlarge text">A+</button>
         <button class="mini" id="selReverse" style="display:none">⇄ Reverse</button>
@@ -416,6 +424,7 @@ a.plainlink:hover{color:#137059}
       <h3>Overall notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
       <div class="micWrap">
         <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary."></textarea>
+        <input id="pageURL" placeholder="Page URL / route (optional — maps the screenshot to code)" style="width:100%;margin-top:6px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12.5px;background:var(--white);color:var(--ink)">
         <button class="micBtn" data-target="notes" title="Dictate — click, speak, click again to stop">🎤</button>
       </div>
       <div class="railTip small">For a note on a specific item, click it and use the note box above.</div>
@@ -472,7 +481,7 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.22.0', APP_BUILD='2026-08-11';
+const APP_VERSION='1.23.0', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -566,20 +575,28 @@ function annoAnchor(a){
   if(a.t==='arrow')return {x:a.x1, y:a.y1};
   return {x:a.x, y:a.y};
 }
-function drawCaption(g,a){
-  if(!a.cap)return;
+function capLayout(g,a){
   const fs=Math.max(13, (a.lw||3)*4.5);
   g.font=`600 ${fs}px ui-sans-serif,system-ui,sans-serif`;
+  const text=(a.by==='ai'?'AI: ':'')+a.cap;
+  const lines=wrapLines(g,text,460);
+  let tw=0; lines.forEach(l=>tw=Math.max(tw,g.measureText(l).width));
+  const padX=fs*0.5, padY=fs*0.35, lineH=fs*1.3;
   const an=annoAnchor(a);
-  const padX=fs*0.5, padY=fs*0.35, w=g.measureText(a.cap).width+padX*2, h=fs+padY*2;
-  let x=an.x, y=an.y-h-4;                 // sit above the anchor
-  const rr=Math.min(6,h/2);
+  const w=tw+padX*2, h=lines.length*lineH+padY*2;
+  return {fs,lines,padX,padY,lineH,w,h,x:an.x,y:an.y-h-4};
+}
+function drawCaption(g,a){
+  if(!a.cap)return;
+  const L=capLayout(g,a);
+  const {x,y,w,h}=L, rr=Math.min(6,h/2);
   g.fillStyle=a.c;
   g.beginPath();
   g.moveTo(x+rr,y); g.arcTo(x+w,y,x+w,y+h,rr); g.arcTo(x+w,y+h,x,y+h,rr);
   g.arcTo(x,y+h,x,y,rr); g.arcTo(x,y,x+w,y,rr); g.closePath(); g.fill();
   g.fillStyle='#fff'; g.textBaseline='middle';
-  g.fillText(a.cap, x+padX, y+h/2);
+  g.font=`600 ${L.fs}px ui-sans-serif,system-ui,sans-serif`;
+  L.lines.forEach((ln,i)=>g.fillText(ln, x+L.padX, y+L.padY+L.lineH*(i+0.5)));
   g.textBaseline='alphabetic';
 }
 function drawAnno(g,a){
@@ -781,7 +798,7 @@ function refreshPieces(){
     if(a.t==='box'&&a.fill)dot.classList.add('filled');
     const info=document.createElement('div'); info.className='pinfo';
     const lbl=document.createElement('div'); lbl.className='plbl';
-    lbl.textContent=(a.t==='box'?(a.fill?'Region':'Box'):'Arrow')+' · '+colorName(a.c);
+    lbl.textContent=(a.by==='ai'?'AI · ':'')+(a.t==='box'?(a.fill?'Region':'Box'):'Arrow')+' · '+colorName(a.c);
     info.appendChild(lbl);
     if(!a.g){ const cap=document.createElement('div'); cap.className='pcap'+(a.cap?'':' empty'); cap.textContent=a.cap||'no note'; info.appendChild(cap); }
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete mark';
@@ -885,10 +902,13 @@ function contentBBox(includeImages){
   const acc=(a,b,c,d)=>{any=true;x1=Math.min(x1,a);y1=Math.min(y1,b);x2=Math.max(x2,c);y2=Math.max(y2,d);};
   if(includeImages) images.forEach(im=>acc(im.x,im.y,im.x+im.w,im.y+im.h));
   slices.forEach(s=>acc(s.x,s.y,s.x+s.sw,s.y+s.sh));
+  groups.forEach(gr=>{ if(!gr.cap)return; const gb=groupBBox(gr.id); if(!gb)return;
+    const cb=capLayout(ctx,{t:'box',x:gb.x,y:gb.y,cap:gr.cap,c:gr.c,lw:strokeW()}); acc(cb.x,cb.y,cb.x+cb.w,cb.y+cb.h); });
   annos.forEach(a=>{
     if(a.t==='box'||a.t==='widget')acc(a.x,a.y,a.x+a.w,a.y+a.h);
     else if(a.t==='arrow')acc(Math.min(a.x1,a.x2),Math.min(a.y1,a.y2),Math.max(a.x1,a.x2),Math.max(a.y1,a.y2));
     else if(a.t==='pen')a.pts.forEach(p=>acc(p.x,p.y,p.x,p.y));
+    if((a.t==='box'||a.t==='arrow')&&a.cap&&!a.g){ const cb=capLayout(ctx,a); acc(cb.x,cb.y,cb.x+cb.w,cb.y+cb.h); }
     else if(a.t==='text'){
       ctx.font=`600 ${a.size}px ui-sans-serif,system-ui,sans-serif`;
       const w=ctx.measureText(a.text).width;
@@ -1275,6 +1295,7 @@ function syncEditor(){
   const grouped=!isGroup&&o.g&&groupById(o.g);
   $('selReverse').style.display='none';
   $('selSmaller').style.display='none'; $('selBigger').style.display='none';
+  $('selType').style.display='none'; $('selSev').style.display='none';
   if(isGroup){
     const n=groupMembers(o.id).length;
     $('selTitle').textContent='Selected group · '+n+' item'+(n!==1?'s':'');
@@ -1310,6 +1331,14 @@ function syncEditor(){
     }
     $('markColors').style.display=(isMark&&o.t!=='widget')?'flex':'none';
     if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
+  }
+  if(isGroup){
+    $('selType').style.display='inline-block'; $('selSev').style.display='inline-block';
+    $('selType').value=o.itype||''; $('selSev').value=o.sev||'';
+  }
+  if(!grouped&&(sel.kind==='piece'||(isMark&&(o.t==='box'||o.t==='arrow')))){
+    $('selType').style.display='inline-block'; $('selSev').style.display='inline-block';
+    $('selType').value=o.itype||''; $('selSev').value=o.sev||'';
   }
   if(isMark&&!grouped&&o.t==='arrow')$('selReverse').style.display='inline-block';
   const fw=$('markFillWrap');
@@ -1646,7 +1675,7 @@ function downloadBlob(blob,name){
 }
 function serialize(){
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
-    project:$('projectName').value,notes:$('notes').value,savedAt:new Date().toISOString(),
+    project:$('projectName').value,notes:$('notes').value,pageURL:$('pageURL').value.trim(),savedAt:new Date().toISOString(),
     images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups,contextLog,attachments};
 }
 function applyState(d){
@@ -1658,7 +1687,7 @@ function applyState(d){
   }))).then(arr=>{
     images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[]; contextLog=d.contextLog||[]; attachments=d.attachments||[];
     nextGid=groups.reduce((m,g)=>Math.max(m,g.id+1),1); msel=[];
-    $('projectName').value=d.project||''; $('notes').value=d.notes||'';
+    $('projectName').value=d.project||''; $('notes').value=d.notes||''; $('pageURL').value=d.pageURL||'';
     undoStack=[]; selected=-1;
     $('dropHint').style.display=images.length?'none':'flex';
     fitView(); refreshPieces();
@@ -1769,6 +1798,8 @@ function buildReport(){
   L.push('');
   L.push('## Context');
   L.push('');
+  const purl=$('pageURL').value.trim();
+  if(purl)L.push('- Page: '+purl);
   L.push('- Report created: '+new Date().toLocaleString()+' · viewport '+window.innerWidth+'×'+window.innerHeight+' · '+(navigator.userAgentData&&navigator.userAgentData.platform||navigator.platform||''));
   if(contextLog.length){
     contextLog.forEach(cl=>{
@@ -1791,9 +1822,13 @@ function buildReport(){
       if(arrows)parts.push(arrows+' arrow'+(arrows>1?'s':''));
       if(boxes)parts.push(boxes+' box'+(boxes>1?'es':'')+'/region'+(boxes>1?'s':''));
       if(widgets)parts.push(widgets+' widget'+(widgets>1?'s':''));
+      const geos=mem.filter(m=>m.kind==='mark'&&annos[m.i].t==='box').slice(0,6)
+        .map(m=>{const a=annos[m.i];return '('+Math.round(a.x)+','+Math.round(a.y)+' '+Math.round(a.w)+'×'+Math.round(a.h)+')';});
       if(pieces)parts.push(pieces+' piece'+(pieces>1?'s':''));
       const where=parts.length?' — shown by '+parts.join(', ')+' in '+colorName(gr.c):'';
-      if(gr.cap)L.push('- **Issue '+(gi+1)+'**: '+gr.cap+where);
+      const gtag=[gr.itype,gr.sev].filter(Boolean); const gpre=gtag.length?('['+gtag.join(' · ')+'] '):'';
+      const gwhere=where+(geos.length?(' — regions: '+geos.join(' ')):'');
+      if(gr.cap)L.push('- '+gpre+'**Issue '+(gi+1)+'**: '+gr.cap+gwhere);
       else L.push('- Issue '+(gi+1)+' — no note yet'+where);
     });
     L.push('');
@@ -1820,13 +1855,17 @@ function buildReport(){
   L.push('## Marks');
   L.push('');
   let n=0, hadCaption=false;
+  const tagOf=o=>{ const t=[o.itype,o.sev].filter(Boolean); return t.length?('['+t.join(' · ')+'] '):''; };
+  const geoOf=a=>a.t==='box'
+    ? ('~'+Math.round(a.w)+'×'+Math.round(a.h)+' @ ('+Math.round(a.x)+','+Math.round(a.y)+')')
+    : ('('+Math.round(a.x1)+','+Math.round(a.y1)+')→('+Math.round(a.x2)+','+Math.round(a.y2)+')');
   annos.forEach(a=>{
     if((a.t==='box'||a.t==='arrow')&&!a.g){
       n++;
-      const kind=a.t==='box'?(a.fill?'Filled region':'Box'):'Arrow';
+      const kind=(a.by==='ai'?'AI reply — ':'')+(a.t==='box'?(a.fill?'Filled region':'Box'):'Arrow');
       const col=colorName(a.c);
-      if(a.cap){ hadCaption=true; L.push('- **'+kind+' '+n+'** ('+col+'): '+a.cap); }
-      else L.push('- '+kind+' '+n+' ('+col+') — no caption');
+      if(a.cap){ hadCaption=true; L.push('- '+tagOf(a)+'**'+kind+' '+n+'** ('+col+', '+geoOf(a)+'): '+a.cap); }
+      else L.push('- '+tagOf(a)+kind+' '+n+' ('+col+', '+geoOf(a)+') — no caption');
     }
   });
   const freeText=annos.filter(a=>a.t==='text').map(a=>a.text);
@@ -1850,7 +1889,7 @@ function buildReport(){
     slices.forEach((s,i)=>{
       if(s.g)return;
       const dims=Math.round(s.sw)+'×'+Math.round(s.sh);
-      if(s.cap)L.push('- **Piece '+(i+1)+'** ('+dims+'): '+s.cap);
+      if(s.cap)L.push('- '+tagOf(s)+'**Piece '+(i+1)+'** ('+dims+'): '+s.cap);
       else L.push('- Piece '+(i+1)+' ('+dims+') — no note');
     });
     L.push('');
@@ -2102,6 +2141,9 @@ $('btnTheme').onclick=()=>{
 };
 applyTheme((function(){try{return localStorage.getItem('mockurator:theme')||'paper';}catch(e){return 'paper';}})(),false);
 
+$('selType').onchange=()=>{ const o=selObj(); if(!o)return; const v=$('selType').value; if(v)o.itype=v; else delete o.itype; scheduleAutosave(); };
+$('selSev').onchange=()=>{ const o=selObj(); if(!o)return; const v=$('selSev').value; if(v)o.sev=v; else delete o.sev; scheduleAutosave(); };
+
 /* ---------------- tool info modal ---------------- */
 const toolModal=$('toolModal');
 function openTool(k){
@@ -2114,7 +2156,7 @@ toolModal.addEventListener('click',e=>{ if(e.target===toolModal)toolModal.style.
 
 /* ---------------- AI hand-off prompts ---------------- */
 const AI_PROMPTS={
-  pkg:"I'm attaching a MockuRATOR package (a zip). Read report.md first — every mark and issue is explained there, with context about where each screenshot came from. Then study board.png. Address each issue one by one and tell me exactly what you changed, per issue.",
+  pkg:"I'm attaching a MockuRATOR package (a zip). Read report.md first — every mark and issue is explained there, with context about where each screenshot came from. Then study board.png. Address each issue one by one and tell me exactly what you changed, per issue. Captions may contain typos — normalize spelling silently when quoting them. You may also annotate BACK: edit board.json by appending reply marks to the annos array, e.g. {\"t\":\"box\",\"x\":100,\"y\":100,\"w\":200,\"h\":80,\"c\":\"#2563eb\",\"lw\":4,\"cap\":\"your reply here\",\"by\":\"ai\"} (arrows/text work too), and return the edited board.json — the human reloads it and your marks appear labeled AI.",
   log:"Attached is a MockuLog capture — a .txt telemetry log with timestamped ERROR / EXCEPTION / REJECTION / HTTP / XHR entries. First confirm that's what you received: if I've accidentally attached mockulog.js (the recorder script itself) or anything else, stop and tell me — don't analyze the wrong file. If it's the real log: list every distinct error, its likely root cause, and the exact fix — ordered by severity. Ignore warnings unless they explain an error. If the log says the page ran clean, say so plainly.",
   install:"Add MockuLog — a dev-only console/network recorder — to my app. The script is at https://pierrehunt.github.io/MockuRATOR/mockulog.js (or attached). Vendor a copy into the project (e.g. wwwroot/js/mockulog.js for ASP.NET, or next to index.html), and load it ONLY in development: for ASP.NET wrap the script tag in <environment include=\"Development\">; for plain HTML, guard on location.hostname === 'localhost'. Do not modify the recorder file itself. Tell me exactly which files you changed.",
   both:"This zip holds my annotated screenshot (board.png), my notes (report.md), and a console log. Cross-reference them: which of the visual issues I marked are explained by errors in the log? Then fix each, telling me what you changed."

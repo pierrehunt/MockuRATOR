@@ -103,6 +103,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.23.0** — The consumer´s five notches (review by the receiving AI): caption pills wrap and never truncate in exports; report.md carries exact geometry for every mark and Issue region; type + severity tags (bug/enhancement/question/praise · low→critical); Page URL field maps screenshots to routes; and the AI reply-back convention — an AI can append its own marks to board.json (by:"ai") and you reload the conversation onto the board
 - **1.22.0** — Enter Wireframe Mode: one click focuses the whole UX for design (capture tools tuck away, dot grid appears, widgets snap to an 8px grid); widgets can join groups; palette lives below MockuLog
 - **1.21.0** — 🎉 Wireframe mode: 16 sketch-dialect widgets, drag-to-place, in-place rename, behaviour notes, starter layouts, spec-flavoured report with UX conscience — the balsamic release
 - **1.20.0** — 🎨 Colour themes: Paper, High contrast (glasses-friendly), Dark, and Katana — one header button cycles and remembers; the canvas mat and exports stay light so marks stay readable
