@@ -43,7 +43,7 @@ pt('pointerdown',360,250); pt('pointermove',420,300); pt('pointerup',420,300);
 ok('widget corner-resizes',w.eval('annos[0].w')===220&&w.eval('annos[0].h')===100);
 
 // items list + rails
-ok('widget rows in Items',/Widget · Button/.test($('pieces').textContent)&&/Save changes/.test($('pieces').textContent));
+ok('widget rows in Items',/Button/.test($('pieces').textContent)&&/Save changes/.test($('pieces').textContent));
 w.eval("annos[1].label='';refreshPieces();");
 ok('unlabeled rail counts',/1 unlabeled/.test($('pieceCount').innerHTML));
 

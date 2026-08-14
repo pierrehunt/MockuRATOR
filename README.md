@@ -9,7 +9,15 @@
 
 Every Export Package is one zip holding three files with a taught reading order: **board.png** (the annotated evidence), **report.md** (intent, geometry, severity, provenance — written *for* AI consumption), and **board.json** (machine-precise reload). Drop the zip into Claude, ChatGPT, Cursor — the report tells them how to read it. A built-in 🪲 recorder ([MockuLog](mockulog.js)) captures console errors and failed requests on any page and rides *inside* the package, so your screenshots arrive with their own telemetry. And the AI can **annotate back**: it appends reply-marks to board.json, you reload, and its answers appear pinned on your board. A reviewer and an AI holding a conversation in board space — nothing else does this.
 
-Flip into **MockuFRAME** (Wireframe Mode) and the same engine runs in reverse: sixteen hand-sketched widgets, grid + snap + alignment tools, starter layouts, triple device preview — and the export becomes a **build brief**: every component's label, geometry, and behaviour note, plus a UX conscience that flags unlabeled widgets to whoever builds it.
+---
+
+<p align="center"><img src="MockuFRAME.png" width="700" alt="MockuFRAME — Frame it. Spec it. Build it."></p>
+
+**Frame it. Spec it. Build it.** — click **MockuFRAME** in the header (or press the tab) to switch modes. The same canvas, the same tools, a completely different purpose: design the UI *before* it exists. Drop Phone, Tablet, or Desktop screen frames, fill them with hand-sketched widgets, wire the screens with flow arrows, and export a build brief — a per-screen spec with every component's label, geometry, and behaviour note — that any AI can execute. A built-in UX conscience flags unlabeled widgets and missing notes in the panel *and* in the report, so the builder sees them too.
+
+> Low-fidelity on purpose. Sketchy widgets say "argue about intent, not pixels." Balsamiq rents this. MockuFRAME is free, offline, and in the same file.
+
+---
 
 **Why not Jam / Marker / Excalidraw / Balsamiq?** They're good — at their organ. Jam captures console logs but ships them to a per-seat cloud. Excalidraw is a magnificent free canvas with no capture, telemetry, or spec output. Balsamiq rents rectangles plus metered AI credits. MockuRATOR is the whole organism, **without authority**: single file, works from file://, everything stays on your machine, no server even exists. Made *with* AI, *for* working with AI.
 
@@ -88,6 +96,10 @@ Ready-made prompts — one-click copies live in the panel beside each bookmarkle
 > **With both together:** "This zip holds my annotated screenshot, my notes, and a console log. Cross-reference them: which of the visual issues I marked are explained by errors in the log? Then fix each, telling me what you changed."
 
 ## The family
+
+<p align="center"><img src="MockuFRAME.png" width="72%" alt="MockuFRAME — Frame it. Spec it. Build it."></p>
+
+**MockuFRAME** is the wireframing mode built into MockuRATOR — click the tab in the header to switch. Drop screen frames (Phone, Tablet, Desktop), fill them with sketchy widgets, wire the flows, and export a build brief that any AI can execute.
 
 <p align="center">
   <img src="mockugrab-logo.png" width="46%" alt="MockuGrab — point it, click it, cut it">

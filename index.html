@@ -158,20 +158,20 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
   letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:baseline;gap:6px}
 .railTip{font-size:12px;color:var(--muted);margin:4px 0;line-height:1.45}
 #notes{width:100%;height:150px;resize:vertical;border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff}
-#pieces{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;min-height:50px}
-.piece{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;
-  padding:6px;cursor:pointer;background:#fff}
+#pieces{display:flex;flex-direction:column;gap:3px;overflow-y:auto;flex:1;min-height:50px}
+.piece{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;
+  padding:3px 5px;cursor:pointer;background:#fff}
 .piece:hover{border-color:var(--muted)}
 .piece.sel{border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
-.piece canvas{border:1px solid var(--line);border-radius:4px;background:#fff}
-.piece .pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.piece .plbl{font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace}
-.piece .pcap{font-size:12.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.piece canvas{border:1px solid var(--line);border-radius:3px;background:#fff}
+.piece .pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:0}
+.piece .plbl{font-size:10px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.piece .pcap{font-size:11.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .piece .pcap.empty{color:#b7b4a8;font-style:italic}
 .piece.markrow{align-items:center}
-.piece .mdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
+.piece .mdot{width:22px;height:22px;border-radius:5px;flex:0 0 auto;border:2px solid rgba(0,0,0,.12)}
 .piece .mdot.filled{opacity:.55}
-.piece .mdot.tdot{color:#fff;font-weight:700;font-size:15px;text-align:center;line-height:26px}
+.piece .mdot.tdot{color:#fff;font-weight:700;font-size:13px;text-align:center;line-height:20px}
 #tipCard{pointer-events:auto;margin-top:26px;background:var(--white);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:16px 20px;max-width:540px;width:90%}
 .tipHead{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);
@@ -215,8 +215,8 @@ body.wfmode .modeTab#modeFrame{background:var(--accent);color:#fff}
 /* wireframe dropHint variant */
 body.wfmode #dropHintAnnotate{display:none}
 body:not(.wfmode) #dropHintWireframe{display:none}
-.piece .wdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid var(--line);
-  background:var(--white);color:var(--ink);font-size:10px;font-weight:700;text-align:center;line-height:24px}
+.piece .wdot{width:22px;height:22px;border-radius:5px;flex:0 0 auto;border:2px solid var(--line);
+  background:var(--white);color:var(--ink);font-size:8px;font-weight:700;text-align:center;line-height:18px}
 .mini.info{border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;color:var(--accent)}
 #devPreview{position:fixed;inset:0;background:rgba(30,28,23,.55);display:none;align-items:center;justify-content:center;z-index:70}
 .devWrap{background:#f7f4ea;border-radius:14px;padding:20px 24px;max-width:96vw;max-height:92vh;overflow:auto;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.4)}
@@ -960,7 +960,7 @@ function refreshPieces(){
     item.className='piece markrow'+(on?' sel':'')+(member?' member':'')+(msel.includes('mark:'+i)?' msel':'');
     const dot=document.createElement('span'); dot.className='wdot'; dot.textContent=(WIDGETS[a.kind]?WIDGETS[a.kind].name:'W').slice(0,3).toUpperCase();
     const info=document.createElement('div'); info.className='pinfo';
-    const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent='Widget · '+(WIDGETS[a.kind]?WIDGETS[a.kind].name:a.kind)+((a.label||'').trim()?(' · “'+a.label+'”'):' · unlabeled');
+    const lbl=document.createElement('div'); lbl.className='plbl'; lbl.textContent=(WIDGETS[a.kind]?WIDGETS[a.kind].name:a.kind)+((a.label||'').trim()?(' · “'+a.label+'”'):' · unlabeled');
     info.appendChild(lbl);
     if(!a.g){ const cap=document.createElement('div'); cap.className='pcap'+(a.cap?'':' empty'); cap.textContent=a.cap||'no note'; info.appendChild(cap); }
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete widget';
@@ -1252,6 +1252,7 @@ canvas.addEventListener('pointerup',()=>{
     const x=snapv((r.w>14&&r.h>14)?r.x:d.a.x-spec.w/2), y=snapv((r.w>14&&r.h>14)?r.y:d.a.y-spec.h/2);
     annos.push({t:'widget',kind:pendingKind,x,y,w,h,label:spec.label});
     undoStack.push({k:'anno'});
+    $('dropHint').style.display='none';
     selectMark(annos.length-1); sync(); return;
   }
   if(d.kind==='moveAnno'){ if(d.moved)undoStack.push({k:'markedit',i:d.i,prev:d.orig}); sync(); return; }
