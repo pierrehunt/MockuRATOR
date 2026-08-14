@@ -286,7 +286,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.25.4</span>
+    <span class="ver" id="verBadge">v1.25.5</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -571,7 +571,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.25.4', APP_BUILD='2026-08-14';
+const APP_VERSION='1.25.5', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1852,6 +1852,11 @@ window.addEventListener('keydown',e=>{
   const inField=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
   if(e.key==='Escape'&&$('helpOverlay').style.display==='flex'){showHelp(false);return;}
   if(inField)return;
+  if(e.key==='Escape'){
+    if(pendingKind){ pendingKind=null; setTool('move'); refreshChips(); toast('Chip released — Move is active.'); return; }
+    if(drag){ drag=null; render(); return; }
+    return;
+  }
   if(e.key==='?'||(e.shiftKey&&e.key==='/')){showHelp(true);return;}
   if(e.code==='Space'){spaceDown=true;e.preventDefault();return;}
   const map={v:'move',s:'slice',h:'pan',b:'box',a:'arrow',p:'pen',t:'text'};
@@ -1860,7 +1865,6 @@ window.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&k==='d'){e.preventDefault();dupSelected();return;}
   if(!e.ctrlKey&&!e.metaKey&&map[k]){setTool(map[k]);return;}
   if(e.key==='Delete'||e.key==='Backspace'){delSelected();return;}
-  if(e.key==='Escape'&&drag){drag=null;render();}
 });
 window.addEventListener('keyup',e=>{ if(e.code==='Space')spaceDown=false; });
 
@@ -2562,13 +2566,17 @@ try{ if(localStorage.getItem('mockurator:wfmode')==='1')setWfMode(true,false); }
     b.onclick=()=>{
       if(pendingKind===k&&tool==='widget'){ pendingKind=null; setTool('move'); refreshChips(); return; }
       pendingKind=k; setTool('widget'); refreshChips();
-      toast('Drag on the canvas to place a '+WIDGETS[k].name.toLowerCase()+' — or just click for a default size.');
+      toast('Drag on the canvas to place a '+WIDGETS[k].name.toLowerCase()+' — or just click for a default size. Esc when done.');
     };
     wrap.appendChild(b);
   });
   window.refreshChips=function(){
     [...wrap.children].forEach(b=>b.classList.toggle('on',tool==='widget'&&b.dataset.k===pendingKind));
     document.querySelectorAll('#framechips [data-f]').forEach(b=>b.classList.toggle('on',tool==='widget'&&pendingKind==='frame:'+b.dataset.f));
+    const hw=$('hintWireframe');
+    if(hw){ hw.innerHTML=pendingKind&&tool==='widget'
+      ?'<b>click or drag</b> to place · <b>Esc</b> to stop placing · <b>V</b> to move'
+      :'<b>V</b> move · <b>A</b> flow arrow · click a chip to place · <span class="kbd">?</span> all shortcuts'; }
   };
 })();
 document.querySelectorAll('#framechips [data-f]').forEach(b=>{
@@ -2577,7 +2585,7 @@ document.querySelectorAll('#framechips [data-f]').forEach(b=>{
     const k='frame:'+b.dataset.f;
     if(pendingKind===k&&tool==='widget'){ pendingKind=null; setTool('move'); refreshChips(); return; }
     pendingKind=k; setTool('widget'); refreshChips();
-    toast('Click the canvas to place a '+FRAMES[b.dataset.f].name.toLowerCase()+' screen — or drag your own size. Widgets inside belong to it.');
+    toast('Click the canvas to place a '+FRAMES[b.dataset.f].name.toLowerCase()+' screen — or drag your own size. Esc when done.');
   };
 });
 const PRESETS={

@@ -120,6 +120,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.25.5** — Sticky chip mode is now intentional: armed chip stays armed across placements; **Esc** releases it back to Move (toast + hintBar both tell you so); chip and frame toasts say "Esc when done"
 - **1.25.4** — Download-first: a prominent **⬇ Open in browser / Download for offline** button pair at the top of the README; a **⬇ Get app** button in the header fetches the live page source and saves it as `MockuRATOR.html` (fallback to GitHub raw URL when running from file://); MockuFRAME section added to README hero and to The family; wireframe features heading cleaned up
 - **1.25.3** — MockuFRAME gets its own hero section in the README — logo at full width, own tagline, direct Balsamiq comparison; The family section updated with MockuFRAME leading
 - **1.25.2** — Items list compacted (40% less vertical space per row — tighter padding, smaller icons, shorter labels); drop-hint correctly hides when a widget chip is placed; MockuFRAME mode-tab UX polished
