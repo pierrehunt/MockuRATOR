@@ -120,6 +120,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.26.1** — Three fixes: grouping alignment bar no longer bursts out of the rail (column stack, full-width); Esc closes the ? overlay reliably (overlay takes focus on open, handles its own Esc keydown); **Export conscience modal** — Export Package now shows a `⚠ UX conscience check` modal listing all guide-rail findings with "Fix them first" / "Export anyway" choices, instead of a dismissible toast
 - **1.26.0** — Floating draggable **Selected editor**: the item editor lifts off the panel into a movable card (teal drag handle, ✕ close, position remembered); Del key now honours every selection type — marks, groups, frames, and pieces; pasted/opened images auto-select on arrival, are clickable in Move to drag or reposition, and can be deleted with Del; image moves carry their slices; Esc also clears a selected image
 - **1.25.5** — Sticky chip mode is now intentional: armed chip stays armed across placements; **Esc** releases it back to Move (toast + hintBar both tell you so); chip and frame toasts say "Esc when done"
 - **1.25.4** — Download-first: a prominent **⬇ Open in browser / Download for offline** button pair at the top of the README; a **⬇ Get app** button in the header fetches the live page source and saves it as `MockuRATOR.html` (fallback to GitHub raw URL when running from file://); MockuFRAME section added to README hero and to The family; wireframe features heading cleaned up

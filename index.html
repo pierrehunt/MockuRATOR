@@ -122,6 +122,14 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 #helpClose{float:right;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:4px 12px;cursor:pointer;color:var(--ink2)}
 #helpClose:hover{background:#f0eee6}
+/* conscience modal */
+#conscienceModal{position:fixed;inset:0;background:rgba(20,19,15,.55);display:none;
+  align-items:center;justify-content:center;z-index:80;padding:20px}
+#conscienceCard{background:var(--white);border:1px solid var(--line);border-radius:14px;
+  max-width:460px;width:100%;padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+#conscienceCard h3{margin:0 0 2px;font-size:17px;color:var(--ink)}
+#conscienceList{margin:0 0 4px;padding-left:20px;font-size:13px;color:var(--ink2);line-height:1.7}
+#conscienceList li{margin-bottom:3px}
 /* floating selected-item editor */
 #secSel{position:fixed;width:290px;background:var(--white);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:60;display:none;
@@ -201,8 +209,11 @@ a.plainlink{color:var(--accent);text-decoration:underline}
 .bmrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 6px}
 .bmrow .bm{margin:0}
 .bmrow .mini{margin:0}
-#alignBar{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;width:100%}
+#alignBar{display:flex;flex-wrap:wrap;gap:4px;width:100%}
 #alignBar .mini{padding:3px 9px;font-size:13px}
+/* groupBar must stack vertically — JS sets display:flex but no direction, so override */
+#groupBar{flex-direction:column !important;gap:5px;width:100%}
+#groupBar>.mini,#groupBar>.primaryish{margin-left:0;align-self:stretch;text-align:center}
 #wchips{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
 .wchip{border:1px solid var(--line);background:var(--white);border-radius:7px;padding:6px 4px;
   font-size:11.5px;cursor:pointer;color:var(--ink2);text-align:center}
@@ -297,7 +308,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.26.0</span>
+    <span class="ver" id="verBadge">v1.26.1</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -442,7 +453,18 @@ a.plainlink:hover{color:#137059}
     </div>
   </div>
 </div>
-<div id="helpOverlay">
+    <div id="conscienceModal" style="display:none">
+      <div id="conscienceCard">
+        <h3>⚠ UX conscience check</h3>
+        <p id="conscienceIntro" style="margin:6px 0 10px;font-size:13.5px;color:var(--muted)">The guide rails flagged these before you export:</p>
+        <ul id="conscienceList"></ul>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button id="conscienceFix" class="hbtn">Fix them first</button>
+          <button id="conscienceExport" class="hbtn primary">Export anyway</button>
+        </div>
+      </div>
+    </div>
+<div id="helpOverlay" tabindex="-1">
       <div id="helpCard">
         <button id="helpClose">Close</button>
         <h2>MockuRATOR shortcuts</h2>
@@ -589,7 +611,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.26.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.26.1', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1949,10 +1971,16 @@ $('notes').addEventListener('input',scheduleAutosave);
 $('projectName').addEventListener('input',scheduleAutosave);
 
 /* ---------------- help overlay ---------------- */
-function showHelp(v){ $('helpOverlay').style.display=v?'flex':'none'; }
+function showHelp(v){
+  $('helpOverlay').style.display=v?'flex':'none';
+  if(v)setTimeout(()=>$('helpOverlay').focus(),0);
+}
 $('helpBtn').onclick=()=>showHelp(true);
 $('helpClose').onclick=()=>showHelp(false);
 $('helpOverlay').addEventListener('click',e=>{ if(e.target===$('helpOverlay'))showHelp(false); });
+$('helpOverlay').addEventListener('keydown',e=>{
+  if(e.key==='Escape'||e.key==='?'){ e.stopPropagation(); showHelp(false); }
+});
 
 /* ---------------- keyboard ---------------- */
 window.addEventListener('keydown',e=>{
@@ -2480,17 +2508,8 @@ function zipStore(files){
 }
 const blobBytes=blob=>blob.arrayBuffer().then(b=>new Uint8Array(b));
 
-$('btnPackage').onclick=async()=>{
-  if(!images.length){toast('Nothing to package yet');return;}
-  const noNote=slices.filter(s=>!s.cap&&!s.g).length+annos.filter(a=>(a.t==='box'||a.t==='arrow'||a.t==='widget')&&!a.cap&&!a.g).length+groups.filter(g=>!g.cap).length;
-  if(noNote>0 && !$('btnPackage').dataset.warned){
-    $('btnPackage').dataset.warned='1';
-    toast(noNote+' item'+(noNote>1?'s':'')+' still ha'+(noNote>1?'ve':'s')+' no note — click one in Items to add it, or press Export Package again to send anyway.');
-    setTimeout(()=>{ delete $('btnPackage').dataset.warned; },6000);
-    return;
-  }
-  delete $('btnPackage').dataset.warned;
-  toast('Building package…');
+function doPackage(){
+  toast('Building package\u2026');
   renderBoard(async pngBlob=>{
     if(!pngBlob){toast('Nothing to package yet');return;}
     try{
@@ -2511,9 +2530,37 @@ $('btnPackage').onclick=async()=>{
       });
       const zip=zipStore(files);
       downloadBlob(zip,fname('zip'));
-      toast('Package saved — the .zip holds the image, a readable report, and your reload file.');
-    }catch(e){ toast('Could not build the package — use Export PNG instead.'); }
+      toast('Package saved \u2014 the .zip holds the image, a readable report, and your reload file.');
+    }catch(e){ toast('Could not build the package \u2014 use Export PNG instead.'); }
   });
+}
+$('btnPackage').onclick=async()=>{
+  if(!images.length&&!annos.filter(a=>a.t==='frame'||a.t==='widget').length){toast('Nothing to package yet');return;}
+  /* conscience check first */
+  const findings=railFindings();
+  if(findings.length&&!$('btnPackage').dataset.conscienceOk){
+    const list=$('conscienceList'); list.innerHTML='';
+    findings.forEach(f=>{ const li=document.createElement('li'); li.textContent=f; list.appendChild(li); });
+    $('conscienceModal').style.display='flex';
+    return;
+  }
+  delete $('btnPackage').dataset.conscienceOk;
+  /* un-noted items warning */
+  const noNote=slices.filter(s=>!s.cap&&!s.g).length+annos.filter(a=>(a.t==='box'||a.t==='arrow'||a.t==='widget')&&!a.cap&&!a.g).length+groups.filter(g=>!g.cap).length;
+  if(noNote>0 && !$('btnPackage').dataset.warned){
+    $('btnPackage').dataset.warned='1';
+    toast(noNote+' item'+(noNote>1?'s':'')+' still ha'+(noNote>1?'ve':'s')+' no note \u2014 click one in Items to add it, or press Export Package again to send anyway.');
+    setTimeout(()=>{ delete $('btnPackage').dataset.warned; },6000);
+    return;
+  }
+  delete $('btnPackage').dataset.warned;
+  doPackage();
+};
+$('conscienceFix').onclick=()=>{ $('conscienceModal').style.display='none'; };
+$('conscienceExport').onclick=()=>{
+  $('conscienceModal').style.display='none';
+  $('btnPackage').dataset.conscienceOk='1';   // bypass conscience on next click
+  $('btnPackage').click();                      // re-trigger with bypass
 };
 
 /* ---------------- capture bookmarklet ---------------- */
