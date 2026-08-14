@@ -286,7 +286,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.25.0</span>
+    <span class="ver" id="verBadge">v1.25.4</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -294,6 +294,7 @@ a.plainlink:hover{color:#137059}
   <span class="spacer"></span>
   <button class="hbtn" id="btnPreview" title="Preview the board at desktop, tablet, and phone scale">👁 Preview</button>
   <button class="hbtn" id="btnTheme" title="Cycle colour theme — easier on the eyes">🎨</button>
+  <button class="hbtn" id="btnGetApp" title="Download MockuRATOR.html — save it, double-click it, run offline">⬇ Get app</button>
   <button class="hbtn" id="btnOpen">Open image</button>
   <button class="hbtn" id="btnCapture" title="Capture any window, browser tab, or screen via the system picker (works on the HTTPS site)">📸 Capture</button>
   <label class="chk"><input type="checkbox" id="chkOriginal" checked> show originals</label>
@@ -570,7 +571,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.25.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.25.4', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -2735,6 +2736,22 @@ function applyTheme(id,announce){
   if(typeof render==='function')try{render();}catch(e){}
   if(announce)toast('Theme: '+t.name);
 }
+$('btnGetApp').onclick=async()=>{
+  toast('Preparing download…');
+  try{
+    const r=await fetch(location.href);
+    if(!r.ok)throw new Error('fetch failed');
+    const text=await r.text();
+    downloadBlob(new Blob([text],{type:'text/html'}),'MockuRATOR.html');
+    toast('MockuRATOR.html saved — double-click it to run offline, or share the single file.');
+  }catch(e){
+    /* fallback: direct link to GitHub raw — works even from file:// */
+    const a=document.createElement('a');
+    a.href='https://github.com/pierrehunt/MockuRATOR/raw/main/index.html';
+    a.download='MockuRATOR.html'; a.click();
+    toast('Downloading MockuRATOR.html from GitHub — save it and double-click to run offline.');
+  }
+};
 $('btnTheme').onclick=()=>{
   const cur=(function(){try{return localStorage.getItem('mockurator:theme')||'paper';}catch(e){return 'paper';}})();
   const i=THEMES.findIndex(t=>t.id===cur);

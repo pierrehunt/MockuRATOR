@@ -2,8 +2,14 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-17%20suites%20green-2ea44f)
 
+<p align="center">
+  <a href="https://pierrehunt.github.io/MockuRATOR/"><img src="https://img.shields.io/badge/🌐%20Open%20in%20browser-no%20install%20needed-0f5c4e?style=for-the-badge" alt="Open in browser"></a>
+  &nbsp;
+  <a href="https://github.com/pierrehunt/MockuRATOR/raw/main/index.html" download="MockuRATOR.html"><img src="https://img.shields.io/badge/⬇%20Download%20for%20offline-save%20%26%20double--click-2e2d27?style=for-the-badge" alt="Download for offline use"></a>
+</p>
+
 # MockuRATOR
-**Slice it. Mark it. Send it.** · [Use it now](https://pierrehunt.github.io/MockuRATOR/) — one HTML file, no install, no account, MIT.
+**Slice it. Mark it. Send it.** — one HTML file, no install, no account, MIT.
 
 **The bug report your AI can actually execute — and now, the wireframe that writes its own build spec.**
 
@@ -29,7 +35,7 @@ Sending bugs and change requests to AI assistants (ChatGPT, Claude, Gemini, Grok
 
 ## Features
 
-### 🆕 Wireframe mode — *van agterkant voor*
+### 🆕 Wireframe mode — MockuFRAME
 Design the UI **before** it exists. A palette of 16 hand-sketched widgets (button, input, select, checkbox, toggle, navbar, card, table…) drags straight onto the board — resize, group, and annotate them with the same tools you use on screenshots. **Double-click renames** a widget; its **note says what it does** ("submits to /api/orders"). Three starter layouts (Login, Dashboard, Settings) place whole screens in one click. The exported report gains a **"Screens & components" build spec** any AI can execute — plus a UX conscience: unlabeled widgets and missing behaviour notes are flagged in the panel *and* travel in the report, so the builder sees them too. Low-fidelity on purpose: sketchy widgets say "argue about intent, not pixels."
 
 
@@ -113,6 +119,11 @@ Ready-made prompts — one-click copies live in the panel beside each bookmarkle
 The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-machine suffix "-RATOR", in the spirit of names like Battlenator and Bazookarator. The oversized sword represents slicing screenshots apart; the copy/paste panels, directional arrow, and callout box represent the core workflow: capture, separate, move, explain, and send.
 
 ## Changelog
+
+- **1.25.4** — Download-first: a prominent **⬇ Open in browser / Download for offline** button pair at the top of the README; a **⬇ Get app** button in the header fetches the live page source and saves it as `MockuRATOR.html` (fallback to GitHub raw URL when running from file://); MockuFRAME section added to README hero and to The family; wireframe features heading cleaned up
+- **1.25.3** — MockuFRAME gets its own hero section in the README — logo at full width, own tagline, direct Balsamiq comparison; The family section updated with MockuFRAME leading
+- **1.25.2** — Items list compacted (40% less vertical space per row — tighter padding, smaller icons, shorter labels); drop-hint correctly hides when a widget chip is placed; MockuFRAME mode-tab UX polished
+- **1.25.1** — Mode toggle moves to the header: **MockuRATOR \| MockuFRAME** pill tabs always visible; panel completely reorganises on switch (annotate rail: Companion/Grab/Log/Recent; wireframe rail: widgets/frames/templates/rails/Recent); Slice hidden in MockuFRAME toolbar; hintBar and dropHint both mode-aware
 
 - **1.25.0** — Four threads shipped in one release: **Device frames** (📱 Phone · 📲 Tablet · 🖥️ Desktop screen containers — place from chip or drag; widgets inside move with the screen; rename by double-clicking the name strip; report writes per-screen sections with relative coords and a Backstage catch-all); **Template packs** (five built-in multi-screen starters — Auth ×3, SaaS shell, Shop ×4, Landing, Pricing — plus a droppable `mockurator-template` JSON format so teams can share packs as plain files); **Guide-rail engine** (five toggleable UX-conscience checks — one primary action per screen, tap targets ≥ 36 px, label contrast, unlabeled widgets, missing behaviour notes — live in the panel, written into the report export); **Reply-back v2** (every mark ships with a stable `id`; AI reply marks add `"re":"<id>"` and MockuRATOR draws a dashed thread connector back to the original; the report lists `↳ replying to` thread lines); plus 17 test suites all green
 - **1.24.1** — Infrastructure release: the full test battery (13 suites, 150+ checks) now lives in `tests/` — `node tests/run.js` runs everything with a syntax smoke first; suites read the app version from source so stale-version fake-FAILs are extinct; section banners in index.html; ARCHITECTURE.md and DEMO-SCRIPT.md added; README repositioned around what nothing else does
