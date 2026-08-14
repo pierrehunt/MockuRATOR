@@ -197,9 +197,24 @@ a.plainlink{color:var(--accent);text-decoration:underline}
   font-size:11.5px;cursor:pointer;color:var(--ink2);text-align:center}
 .wchip:hover{border-color:var(--accent)}
 .wchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-body.wfmode #secSnap,body.wfmode #secBm,body.wfmode #secLog,body.wfmode #secRecent{display:none!important}
+body.wfmode #secSnap,body.wfmode #secBm,body.wfmode #secLog{display:none!important}
+body.wfmode [data-mode="annotate"]{display:none!important}
+body:not(.wfmode) [data-mode="wireframe"]{display:none!important}
 body.wfmode #secWidgets{background:#f4faf7;border:1px solid #bfe3d6;border-radius:10px;padding:12px!important}
 body.wfmode #wchips{grid-template-columns:1fr 1fr 1fr}
+body.wfmode [data-tool="slice"]{display:none}
+/* mode tab pill in the top bar */
+.modeTabs{display:flex;border:1px solid #4a4940;border-radius:8px;overflow:hidden;flex-shrink:0}
+.modeTab{background:transparent;color:#9a978a;border:none;border-right:1px solid #4a4940;
+  padding:5px 11px;font:600 12px/1 ui-sans-serif,system-ui,sans-serif;cursor:pointer;
+  transition:background .15s,color .15s;white-space:nowrap}
+.modeTab:last-child{border-right:none}
+.modeTab:hover{background:#3d3c33;color:#efede4}
+.modeTab.on{background:var(--ink2);color:#efede4}
+body.wfmode .modeTab#modeFrame{background:var(--accent);color:#fff}
+/* wireframe dropHint variant */
+body.wfmode #dropHintAnnotate{display:none}
+body:not(.wfmode) #dropHintWireframe{display:none}
 .piece .wdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid var(--line);
   background:var(--white);color:var(--ink);font-size:10px;font-weight:700;text-align:center;line-height:24px}
 .mini.info{border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;color:var(--accent)}
@@ -266,7 +281,14 @@ a.plainlink:hover{color:#137059}
 <body>
 
 <header>
-  <div class="brand"><img id="brandIcon" alt=""><span id="brandName">MockuRATOR</span> <span class="ver" id="verBadge">v1.5.0</span></div>
+  <div class="brand"><img id="brandIcon" alt="">
+    <div class="modeTabs">
+      <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
+      <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
+    </div>
+    <span class="ver" id="verBadge">v1.25.0</span>
+  </div>
+  <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
   <button class="hbtn" id="btnPanel" title="Show or hide the side panel">Panel</button>
   <span class="spacer"></span>
@@ -313,9 +335,15 @@ a.plainlink:hover{color:#137059}
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="dropHint">
-      <div class="big">Paste a screenshot (Ctrl+V), drop it here, or click "Open image"</div>
-      <div>Then: <b>S</b> — drag a box around each section to cut it out &nbsp;·&nbsp; <b>V</b> — drag the pieces apart &nbsp;·&nbsp; annotate &nbsp;·&nbsp; Export PNG</div>
-      <div>Save JSON keeps the whole board so you can reopen it when checking the next build for regressions.</div>
+      <div id="dropHintAnnotate">
+        <div class="big">Paste a screenshot (Ctrl+V), drop it here, or click "Open image"</div>
+        <div>Then: <b>S</b> — drag a box around each section to cut it out &nbsp;·&nbsp; <b>V</b> — drag the pieces apart &nbsp;·&nbsp; annotate &nbsp;·&nbsp; Export PNG</div>
+        <div>Save JSON keeps the whole board so you can reopen it when checking the next build for regressions.</div>
+      </div>
+      <div id="dropHintWireframe">
+        <div class="big">Pick a screen frame from the panel — Phone, Tablet, or Desktop</div>
+        <div>Click the canvas to place it, then drop widget chips inside. Or drop a <b>mockurator-template</b> JSON to insert a whole pack.</div>
+      </div>
       <div id="tipCard">
         <div class="tipHead">💡 Did you know?</div>
         <div id="tipBody"></div>
@@ -326,7 +354,7 @@ a.plainlink:hover{color:#137059}
         </div>
       </div>
     </div>
-    <div id="hintBar"><b>S</b> slice · <b>V</b> move &amp; edit marks · <span class="kbd">?</span> all shortcuts</div>
+    <div id="hintBar"><span id="hintAnnotate"><b>S</b> slice · <b>V</b> move &amp; edit marks · <span class="kbd">?</span> all shortcuts</span><span id="hintWireframe" style="display:none"><b>V</b> move · <b>A</b> flow arrow · click a chip to place · <span class="kbd">?</span> all shortcuts</span></div>
     <button id="helpBtn" title="Keyboard shortcuts (press ?)">?</button>
     <div id="devPreview">
   <div class="devWrap">
@@ -478,10 +506,9 @@ a.plainlink:hover{color:#137059}
       <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group. To grow a group: click its row, Ctrl-click more items, then Add.</div>
     </div>
 
-    <div class="railSec" id="secWidgets">
-      <h3>Widgets — wireframe <button class="flip" data-sec="secWidgets" title="Move to the other side">⇄</button></h3>
-      <div class="bmrow"><button class="mini primaryish" id="wfToggle">Enter Wireframe Mode</button></div>
-      <div class="railTip small">Pick a chip, then drag on the canvas to place it (or just click for a default size). Double-click any widget to rename it; its note says what it <i>does</i> — the report writes the build spec.</div>
+    <div class="railSec" id="secWidgets" data-mode="wireframe">
+      <h3>Widgets <button class="flip" data-sec="secWidgets" title="Move to the other side">⇄</button></h3>
+      <div class="railTip small">Pick a chip, drag on the canvas to place it — or just click for a default size. Double-click to rename; its note says what it <i>does</i> — the report writes the build spec.</div>
       <div id="wchips"></div>
       <div class="railTip small" style="margin-top:8px"><b>Screens (device frames):</b></div>
       <div class="bmrow" id="framechips">
@@ -507,26 +534,26 @@ a.plainlink:hover{color:#137059}
       <div class="railTip small">Packs drop whole screen sets with the flows already wired. Any <b>mockurator-template</b> JSON dropped on the canvas inserts the same way — share packs as plain files.</div>
     </div>
 
-    <div class="railSec" id="secRails">
+    <div class="railSec" id="secRails" data-mode="wireframe">
       <h3>Guide rails — UX conscience <button class="flip" data-sec="secRails" title="Move to the other side">⇄</button></h3>
       <label class="railTip small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="railsMaster" checked> Rails on — nudges here, conscience in the report</label>
       <div id="railList"></div>
       <div id="railFinds"></div>
     </div>
 
-    <div class="railSec" id="secSnap">
+    <div class="railSec" id="secSnap" data-mode="annotate">
       <h3>Companion — Snap · Grab · Log <button class="flip" data-sec="secSnap" title="Move to the other side">⇄</button></h3>
       <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a><button class="mini info" data-tool="snap" title="What is this + how to install">ⓘ</button></div>
       <div class="railTip small">Full page · element grab · one-click log — right-click anywhere.</div>
     </div>
 
-    <div class="railSec" id="secBm">
+    <div class="railSec" id="secBm" data-mode="annotate">
       <h3>Capture bookmarklet <button class="flip" data-sec="secBm" title="Move to the other side">⇄</button></h3>
       <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a><button class="mini info" data-tool="grab" title="How it works + copy buttons">ⓘ</button></div>
       <div class="railTip small">Drag to your bookmarks bar — then click any element on any page.</div>
     </div>
 
-    <div class="railSec" id="secLog">
+    <div class="railSec" id="secLog" data-mode="annotate">
       <h3>MockuLog — F12 without F12 <button class="flip" data-sec="secLog" title="Move to the other side">⇄</button></h3>
       <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a><button class="mini info" data-tool="log" title="The full guide + copy buttons">ⓘ</button></div>
       <div class="railTip small">Records errors & failed requests on any page — no F12, ever.</div>
@@ -2502,17 +2529,25 @@ function snapv(v){ return wfMode ? Math.round(v/WF_GRID)*WF_GRID : v; }
 function setWfMode(on,announce){
   wfMode=!!on;
   document.body.classList.toggle('wfmode',wfMode);
-  $('brandName').textContent=wfMode?'MockuFRAME':'MockuRATOR';
-  document.title=wfMode?'MockuFRAME — draw it, spec it, build it':'MockuRATOR — slice it, mark it, send it';
-  $('wfToggle').textContent=wfMode?'Exit Wireframe Mode':'Enter Wireframe Mode';
+  $('modeAnnotate').classList.toggle('on',!wfMode);
+  $('modeFrame').classList.toggle('on',wfMode);
+  document.title=wfMode?'MockuFRAME — Frame it. Spec it. Build it.':'MockuRATOR — Slice it. Mark it. Send it.';
+  $('hintAnnotate').style.display=wfMode?'none':'';
+  $('hintWireframe').style.display=wfMode?'':'none';
   try{ localStorage.setItem('mockurator:wfmode',wfMode?'1':'0'); }catch(e){}
-  if(wfMode&&images.length===0)$('dropHint').style.display='none';
-  if(!wfMode&&images.length===0&&annos.length===0)$('dropHint').style.display='flex';
+  if(wfMode){
+    $('dropHint').style.display=(images.length===0&&annos.length===0)?'flex':'none';
+    if(tool==='slice')setTool('move');
+  } else {
+    if(images.length===0&&annos.length===0)$('dropHint').style.display='flex';
+  }
   render();
   if(announce)toast(wfMode
-    ?'Wireframe Mode — tools focused, dot grid on, widgets snap to an 8px grid. Design away.'
-    :'Back to annotation mode.');
+    ?'MockuFRAME — design your screens. Dot grid on, widgets snap to 8px.'
+    :'MockuRATOR — back to annotation mode.');
 }
+$('modeAnnotate').onclick=()=>{ if(wfMode)setWfMode(false,true); };
+$('modeFrame').onclick=()=>{ if(!wfMode)setWfMode(true,true); };
 $('wfToggle').onclick=()=>setWfMode(!wfMode,true);
 try{ if(localStorage.getItem('mockurator:wfmode')==='1')setWfMode(true,false); }catch(e){}
 
