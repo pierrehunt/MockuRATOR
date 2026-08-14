@@ -122,7 +122,18 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 #helpClose{float:right;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:4px 12px;cursor:pointer;color:var(--ink2)}
 #helpClose:hover{background:#f0eee6}
-/* mark editor */
+/* floating selected-item editor */
+#secSel{position:fixed;width:290px;background:var(--white);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:60;display:none;
+  flex-direction:column;overflow:hidden}
+#selHandle{display:flex;align-items:center;gap:7px;padding:8px 10px;
+  background:var(--accent);color:#fff;cursor:grab;user-select:none;border-radius:11px 11px 0 0}
+#selHandle:active{cursor:grabbing}
+#selHandleTitle{flex:1;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#selHandleClose{border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
+  border-radius:4px;padding:1px 6px;font-size:14px;line-height:1.4}
+#selHandleClose:hover{background:rgba(255,255,255,.32)}
+#selBody{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .sel-hl{background:#f4faf7;border:1px solid #bfe3d6;border-radius:10px;padding:12px !important;margin:-2px 0}
 .capLabel{display:block;font-size:12px;font-weight:600;color:var(--accent);margin:2px 0 4px}
 .capBox{width:100%;height:70px;resize:vertical;border:2px solid var(--accent);border-radius:8px;
@@ -286,7 +297,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.25.5</span>
+    <span class="ver" id="verBadge">v1.26.0</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -335,6 +346,41 @@ a.plainlink:hover{color:#137059}
   <div class="divider" id="divL"></div>
   <div id="stage">
     <canvas id="canvas"></canvas>
+    <div id="secSel" style="display:none">
+      <div id="selHandle">
+        <span style="font-size:13px">✥</span>
+        <span id="selTitle" id="selHandleTitle">Selected</span>
+        <button id="selHandleClose" title="Close (Esc)">✕</button>
+      </div>
+      <div id="selBody">
+      <div id="selCapWrap">
+        <label id="selCapLabel" class="capLabel">Note for this item</label>
+        <div class="micWrap">
+          <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
+          <button class="micBtn" data-target="selCap" title="Dictate — click, speak, click again to stop">🎤</button>
+        </div>
+      </div>
+      <div id="selGroupHint" class="railTip" style="display:none">This item is in a group — the group's note speaks for it. <button class="mini" id="selOpenGroup">Open group</button></div>
+      <div class="markRow" id="markColors" style="display:none"></div>
+      <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
+      <div class="markRow2">
+        <button class="mini" id="selDup">Duplicate</button>
+        <select class="mini" id="selType" style="display:none" title="Issue type">
+          <option value="">type…</option><option value="bug">bug</option><option value="enhancement">enhancement</option>
+          <option value="question">question</option><option value="praise">praise</option>
+        </select>
+        <select class="mini" id="selSev" style="display:none" title="Severity">
+          <option value="">severity…</option><option value="low">low</option><option value="medium">medium</option>
+          <option value="high">high</option><option value="critical">critical</option>
+        </select>
+        <button class="mini" id="selSmaller" style="display:none" title="Shrink text">A−</button>
+        <button class="mini" id="selBigger" style="display:none" title="Enlarge text">A+</button>
+        <button class="mini" id="selReverse" style="display:none">⇄ Reverse</button>
+        <button class="mini" id="selUngroup" style="display:none">Ungroup</button>
+        <button class="mini danger" id="selDel">Delete</button>
+      </div>
+      </div>
+    </div>
     <div id="dropHint">
       <div id="dropHintAnnotate">
         <div class="big">Paste a screenshot (Ctrl+V), drop it here, or click "Open image"</div>
@@ -447,35 +493,7 @@ a.plainlink:hover{color:#137059}
 
   <div class="divider" id="divR"></div>
   <aside id="railR" class="rail">
-    <div class="railSec sel-hl" id="secSel" style="display:none">
-      <h3><span id="selTitle">Selected</span> <button class="flip" data-sec="secSel" title="Move to the other side">⇄</button></h3>
-      <div id="selCapWrap">
-        <label id="selCapLabel" class="capLabel">Note for this item</label>
-        <div class="micWrap">
-          <textarea id="selCap" class="capBox" placeholder="What's the issue or change?" autocomplete="off"></textarea>
-          <button class="micBtn" data-target="selCap" title="Dictate — click, speak, click again to stop">🎤</button>
-        </div>
-      </div>
-      <div id="selGroupHint" class="railTip" style="display:none">This item is in a group — the group's note speaks for it. <button class="mini" id="selOpenGroup">Open group</button></div>
-      <div class="markRow" id="markColors" style="display:none"></div>
-      <label class="chk2" id="markFillWrap" style="display:none"><input type="checkbox" id="markFill"> Fill the box (translucent)</label>
-      <div class="markRow2">
-        <button class="mini" id="selDup">Duplicate</button>
-        <select class="mini" id="selType" style="display:none" title="Issue type">
-          <option value="">type…</option><option value="bug">bug</option><option value="enhancement">enhancement</option>
-          <option value="question">question</option><option value="praise">praise</option>
-        </select>
-        <select class="mini" id="selSev" style="display:none" title="Severity">
-          <option value="">severity…</option><option value="low">low</option><option value="medium">medium</option>
-          <option value="high">high</option><option value="critical">critical</option>
-        </select>
-        <button class="mini" id="selSmaller" style="display:none" title="Shrink text">A−</button>
-        <button class="mini" id="selBigger" style="display:none" title="Enlarge text">A+</button>
-        <button class="mini" id="selReverse" style="display:none">⇄ Reverse</button>
-        <button class="mini" id="selUngroup" style="display:none">Ungroup</button>
-        <button class="mini danger" id="selDel">Delete</button>
-      </div>
-    </div>
+
 
     <div class="railSec" id="secNotes">
       <h3>Overall notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
@@ -571,7 +589,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.25.5', APP_BUILD='2026-08-14';
+const APP_VERSION='1.26.0', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -798,6 +816,19 @@ function render(){
     const d=Math.max(1.2,1.4/view.s);
     for(let gx=x0;gx<=x1;gx+=gs)for(let gy=y0;gy<=y1;gy+=gs)ctx.fillRect(gx,gy,d,d);
   }
+  /* selected raw image ring */
+  if(selectedImg>=0&&images[selectedImg]){
+    const im=images[selectedImg];
+    ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(2); ctx.setLineDash([lw(6),lw(4)]);
+    ctx.strokeRect(im.x-lw(3),im.y-lw(3),im.w+lw(6),im.h+lw(6)); ctx.setLineDash([]);
+    /* corner move handle hint */
+    const hs=12/view.s;
+    [[im.x,im.y],[im.x+im.w,im.y],[im.x,im.y+im.h],[im.x+im.w,im.y+im.h]].forEach(c=>{
+      ctx.fillStyle='#fff'; ctx.fillRect(c[0]-hs/2,c[1]-hs/2,hs,hs);
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5); ctx.strokeRect(c[0]-hs/2,c[1]-hs/2,hs,hs);
+    });
+  }
+
   if(drag&&(drag.kind==='wdraw'||drag.kind==='marquee')){
     const r=norm(drag.a,drag.b);
     if(r.w>4&&r.h>4){ ctx.setLineDash([lw(6),lw(4)]); ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5);
@@ -1133,7 +1164,14 @@ canvas.addEventListener('pointerdown',e=>{
         drag=mkFrameDrag(fi,p);
         render(); refreshPieces(); return;
       }
-      clearSel(); selected=-1;
+      /* Bug 2: image selection and drag */
+      const ii=hitImg(p);
+      if(ii>=0){
+        selectedImg=ii; clearSel();
+        drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
+        render(); return;
+      }
+      clearSel(); selectedImg=-1; selected=-1;
       drag={kind:'marquee',a:p,b:p};
     }
     render(); refreshPieces(); return;
@@ -1161,7 +1199,13 @@ canvas.addEventListener('pointermove',e=>{
     }
     return;
   }
-  if(drag.kind==='pan'){ view.x=drag.ox+(e.clientX-drag.sx); view.y=drag.oy+(e.clientY-drag.sy); }
+  else if(drag.kind==='moveImg'){
+    const im=images[drag.i]; if(!im)return;
+    const dx=p.x-drag.dx-im.x, dy=p.y-drag.dy-im.y;
+    im.x=p.x-drag.dx; im.y=p.y-drag.dy;
+    slices.forEach(s=>{ if(s.im===drag.i){s.x+=dx;s.y+=dy;} });
+  }
+  else if(drag.kind==='pan'){ view.x=drag.ox+(e.clientX-drag.sx); view.y=drag.oy+(e.clientY-drag.sy); }
   else if(drag.kind==='moveSlice'){ const s=slices[drag.i]; s.x=p.x-drag.dx; s.y=p.y-drag.dy; }
   else if(drag.kind==='pen'){
     const l=drag.pts[drag.pts.length-1];
@@ -1235,6 +1279,7 @@ canvas.addEventListener('pointerup',()=>{
     }
     sync(); return;
   }
+  if(d.kind==='moveImg'){ sync(); return; }
   if(d.kind==='moveFrame'){ sync(); return; }   // undo snapshot already pushed on first movement
   if(d.kind==='wdraw'){
     if(pendingKind&&pendingKind.indexOf('frame:')===0){
@@ -1542,17 +1587,45 @@ function seedMsel(clickKey){
     const sk='mark:'+sel.i; if(sk!==clickKey)msel.push(sk);
   }
 }
-function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; msel=[]; openEditor(true); }
-function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
+function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; selectedImg=-1; msel=[]; openEditor(true); }
+function selectPiece(i){ sel={kind:'piece',i}; selected=i; selectedImg=-1; openEditor(true); }
 function selectMark(i){
   if(i<0||!annos[i]||['box','arrow','text','widget','frame'].indexOf(annos[i].t)<0){ clearSel(); return; }
-  sel={kind:'mark',i}; selected=-1; openEditor(true);
+  sel={kind:'mark',i}; selected=-1; selectedImg=-1; openEditor(true);
 }
-function clearSel(){ sel={kind:null,i:-1}; $('secSel').style.display='none'; }
+function clearSel(){ sel={kind:null,i:-1}; selectedImg=-1; $('secSel').style.display='none'; }
+
+/* ---------- floating editor position + drag ---------- */
+let floatPos={x:Math.max(20,window.innerWidth-640),y:100};
+try{ const fp=JSON.parse(localStorage.getItem('mockurator:floatpos')); if(fp)floatPos={x:+fp.x||floatPos.x,y:+fp.y||floatPos.y}; }catch(e){}
+function posFloat(){
+  const el=$('secSel');
+  floatPos.x=Math.max(0,Math.min(window.innerWidth-(el.offsetWidth||290),floatPos.x));
+  floatPos.y=Math.max(0,Math.min(window.innerHeight-(el.offsetHeight||300),floatPos.y));
+  el.style.left=floatPos.x+'px'; el.style.top=floatPos.y+'px';
+}
+(function(){
+  const handle=$('selHandle'), el=$('secSel');
+  handle.addEventListener('pointerdown',e=>{
+    if(e.target===$('selHandleClose'))return;
+    e.stopPropagation();
+    handle.setPointerCapture(e.pointerId);
+    const sx=e.clientX-floatPos.x, sy=e.clientY-floatPos.y;
+    const mv=ev=>{ floatPos.x=ev.clientX-sx; floatPos.y=ev.clientY-sy; posFloat(); };
+    const up=()=>{
+      handle.removeEventListener('pointermove',mv); handle.removeEventListener('pointerup',up);
+      try{ localStorage.setItem('mockurator:floatpos',JSON.stringify(floatPos)); }catch(e){}
+    };
+    handle.addEventListener('pointermove',mv); handle.addEventListener('pointerup',up);
+  });
+  $('selHandleClose').onclick=()=>clearSel();
+})();
+
 function openEditor(focus){
   const o=selObj();
   if(!o){ clearSel(); return; }
   const sec=$('secSel'); sec.style.display='flex'; sec.style.flexDirection='column';
+  posFloat();
   syncEditor();
   if(focus){ const el=$('selCap'); el.focus(); el.setSelectionRange(el.value.length,el.value.length); }
 }
@@ -1755,17 +1828,51 @@ function undo(){
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
   else if(u.k==='delAnno')annos.splice(u.i,0,u.a);
   else if(u.k==='clear')annos=u.prev;
+  else if(u.k==='delImg'){ images.splice(u.idx,0,u.img); u.slices.forEach(s=>slices.push(s)); if(images.length===1)$('dropHint').style.display='none'; }
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
   else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(sel.kind==='mark'&&sel.i===u.i)syncEditor(); }
   else if(u.k==='boardSnap'){ slices=u.slices; annos=u.annos; groups=u.groups; msel=[]; }
   else if(u.k==='delAtt'){ attachments.splice(u.i,0,u.at); }
   clearSel(); selected=-1; sync();
 }
+/* Bug 1 fix — Del key honours all selection types, not just slices */
 function delSelected(){
-  if(selected<0)return;
-  const s=slices.splice(selected,1)[0];
-  undoStack.push({k:'delSlice',s,i:selected});
-  selected=-1; sync();
+  if(sel.kind==='group'){
+    const gr=groups[sel.i]; if(!gr)return; boardSnap();
+    annos=annos.filter(a=>a.g!==gr.id); slices=slices.filter(s=>s.g!==gr.id);
+    groups.splice(sel.i,1); clearSel(); selected=-1; sync(); return;
+  }
+  if(sel.kind==='mark'){
+    const a=annos.splice(sel.i,1)[0]; undoStack.push({k:'delAnno',i:sel.i,a});
+    clearSel(); selected=-1; sync(); return;
+  }
+  if(sel.kind==='piece'){
+    const s=slices.splice(sel.i,1)[0]; undoStack.push({k:'delSlice',s,i:sel.i});
+    clearSel(); selected=-1; sync(); return;
+  }
+  /* Bug 2 fix — delete a selected raw image */
+  if(selectedImg>=0){
+    const idx=selectedImg, removed=images.splice(idx,1)[0];
+    const removedSlices=slices.filter(s=>s.im===idx);
+    slices=slices.filter(s=>s.im!==idx).map(s=>({...s,im:s.im>idx?s.im-1:s.im}));
+    undoStack.push({k:'delImg',img:removed,slices:removedSlices,idx});
+    selectedImg=-1; if(images.length===0)$('dropHint').style.display='flex'; sync(); return;
+  }
+  if(selected>=0){
+    const s=slices.splice(selected,1)[0];
+    undoStack.push({k:'delSlice',s,i:selected});
+    selected=-1; sync();
+  }
+}
+
+/* Bug 2 — image selection state + hit test */
+let selectedImg=-1;
+function hitImg(p){
+  for(let i=images.length-1;i>=0;i--){
+    const im=images[i];
+    if(p.x>=im.x&&p.x<=im.x+im.w&&p.y>=im.y&&p.y<=im.y+im.h)return i;
+  }
+  return -1;
 }
 function dupSelected(){
   if(selected<0){toast('Select a piece first (V, then click it)');return;}
@@ -1817,16 +1924,16 @@ if(store.ok){
   });
 }
 const SECS=['secNotes','secSel','secPieces','secSnap','secBm','secLog','secWidgets','secRails','secRecent'];
-const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secWidgets:'R',secRails:'R',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
+const DEFAULT_SIDE={secNotes:'L',secPieces:'L',secWidgets:'R',secRails:'R',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
-  SECS.forEach(id=>{ (map[id]==='L'?$('railL'):$('railR')).appendChild($(id)); });
+  SECS.forEach(id=>{ if(id==='secSel')return; (map[id]==='L'?$('railL'):$('railR')).appendChild($(id)); });
   updateRails();
 }
 function saveLayout(){
   if(!store.ok)return;
-  const map={}; SECS.forEach(id=>{ map[id]=$('railL').contains($(id))?'L':'R'; });
+  const map={}; SECS.forEach(id=>{ if(id==='secSel')return; map[id]=$('railL').contains($(id))?'L':'R'; });
   try{ localStorage.setItem('mockurator:layout',JSON.stringify(map)); }catch(e){}
 }
 document.querySelectorAll('.flip').forEach(b=>b.onclick=()=>{
@@ -1854,6 +1961,7 @@ window.addEventListener('keydown',e=>{
   if(inField)return;
   if(e.key==='Escape'){
     if(pendingKind){ pendingKind=null; setTool('move'); refreshChips(); toast('Chip released — Move is active.'); return; }
+    if(selectedImg>=0){ selectedImg=-1; render(); return; }
     if(drag){ drag=null; render(); return; }
     return;
   }
@@ -1877,6 +1985,7 @@ function addImageDataURL(dataURL, source, detail){
     const x=images.length?Math.max(...images.map(m=>m.x+m.w))+80:0;
     images.push({img,dataURL,x,y:0,w:img.naturalWidth,h:img.naturalHeight});
     undoStack.push({k:'image'});
+    selectedImg=images.length-1;   // auto-select so Del and Move work immediately
     $('dropHint').style.display='none';
     fitView();
     if(images.length===1){setTool('slice');toast('Drag a box around each section to cut it out. Press V to move pieces.');}
