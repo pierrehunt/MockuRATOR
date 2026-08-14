@@ -1,0 +1,20 @@
+const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
+const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(String(e)));
+const dom=new JSDOM(fs.readFileSync('deployed.html','utf8'),{runScripts:'dangerously',url:'https://x.io/',virtualConsole:vc,
+ beforeParse(w){w.ResizeObserver=class{observe(){}disconnect(){}unobserve(){}};w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({measureText:()=>({width:42})},{get:(t,p)=>t[p]||(()=>{})});}});
+const d=dom.window.document,$=id=>d.getElementById(id);
+const out=[];const ok=(n,c)=>out.push((c?'PASS':'FAIL')+'  '+n);
+ok('loads clean',errs.length===0);
+const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];
+ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
+ok('tip card present on empty state',!!$('tipCard'));
+ok('a tip is showing',$('tipBody').textContent.length>20);
+ok('dots rendered (17 tips)',$('tipDots').children.length===17);
+const before=$('tipBody').textContent;
+$('tipNext').click();
+ok('next button advances the tip',$('tipBody').textContent!==before);
+ok('help overlay has all 17 tips',$('helpTips').children.length===17);
+ok('grouping tip is in the rotation',[...$('helpTips').children].some(li=>/Group related marks/.test(li.textContent)));
+console.log(out.join('\n'));
+console.log(out.every(l=>l.startsWith('PASS'))?'ALL TIP TESTS PASSED':'FAILED');
+process.exit(errs.length?1:0);

@@ -1,20 +1,19 @@
 <p align="center"><img src="mockurator-logo.png" width="620" alt="MockuRATOR — Slice it. Mark it. Send it."></p>
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-13%20suites%20green-2ea44f)
+
 # MockuRATOR
+**Slice it. Mark it. Send it.** · [Use it now](https://pierrehunt.github.io/MockuRATOR/) — one HTML file, no install, no account, MIT.
 
-> **Slice it. Mark it. Send it.**
+**The bug report your AI can actually execute — and now, the wireframe that writes its own build spec.**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
-![Single file](https://img.shields.io/badge/single%20file-%E2%89%8826%20KB-blue)
-![Dependencies](https://img.shields.io/badge/dependencies-none-lightgrey)
+Every Export Package is one zip holding three files with a taught reading order: **board.png** (the annotated evidence), **report.md** (intent, geometry, severity, provenance — written *for* AI consumption), and **board.json** (machine-precise reload). Drop the zip into Claude, ChatGPT, Cursor — the report tells them how to read it. A built-in 🪲 recorder ([MockuLog](mockulog.js)) captures console errors and failed requests on any page and rides *inside* the package, so your screenshots arrive with their own telemetry. And the AI can **annotate back**: it appends reply-marks to board.json, you reload, and its answers appear pinned on your board. A reviewer and an AI holding a conversation in board space — nothing else does this.
 
-MockuRATOR is a free, single-file browser tool for turning screenshots into clear visual feedback. Paste, drop, or open screenshots, slice out important sections, move and duplicate them, then mark them up with arrows, boxes, freehand pen, and text. Finished boards can be saved as JSON, reopened for regression comparisons, and exported as a PNG ready to paste into a chat, issue, or change request.
+Flip into **MockuFRAME** (Wireframe Mode) and the same engine runs in reverse: sixteen hand-sketched widgets, grid + snap + alignment tools, starter layouts, triple device preview — and the export becomes a **build brief**: every component's label, geometry, and behaviour note, plus a UX conscience that flags unlabeled widgets to whoever builds it.
 
-**Use it live:** https://pierrehunt.github.io/MockuRATOR/ — no install, no signup, nothing to configure.
+**Why not Jam / Marker / Excalidraw / Balsamiq?** They're good — at their organ. Jam captures console logs but ships them to a per-seat cloud. Excalidraw is a magnificent free canvas with no capture, telemetry, or spec output. Balsamiq rents rectangles plus metered AI credits. MockuRATOR is the whole organism, **without authority**: single file, works from file://, everything stays on your machine, no server even exists. Made *with* AI, *for* working with AI.
 
-<!-- Demo: record ~5 seconds with ScreenToGif (paste → slice → drag → arrow → export),
-     upload it to this repo as demo.gif, then delete this comment block and uncomment the line below. -->
-<!-- ![Demo](demo.gif) -->
+*Built by Pierre Hunt × Claude.*
 
 ## Why
 
@@ -103,6 +102,8 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.24.1** — Infrastructure release: the full test battery (13 suites, 150+ checks) now lives in `tests/` — `node tests/run.js` runs everything with a syntax smoke first; suites read the app version from source so stale-version fake-FAILs are extinct; section banners in index.html; ARCHITECTURE.md and DEMO-SCRIPT.md added; README repositioned around what nothing else does
+- **1.24.0** — MockuFRAME breathes: the wireframe side gets its name (wordmark swaps in mode), marquee group-select (drag empty canvas in Move), eight alignment tools (align edges/centers + distribute with equal gaps), and 👁 Device Preview — the board in desktop, tablet, and phone frames at true relative scale
 - **1.23.0** — The consumer´s five notches (review by the receiving AI): caption pills wrap and never truncate in exports; report.md carries exact geometry for every mark and Issue region; type + severity tags (bug/enhancement/question/praise · low→critical); Page URL field maps screenshots to routes; and the AI reply-back convention — an AI can append its own marks to board.json (by:"ai") and you reload the conversation onto the board
 - **1.22.0** — Enter Wireframe Mode: one click focuses the whole UX for design (capture tools tuck away, dot grid appears, widgets snap to an 8px grid); widgets can join groups; palette lives below MockuLog
 - **1.21.0** — 🎉 Wireframe mode: 16 sketch-dialect widgets, drag-to-place, in-place rename, behaviour notes, starter layouts, spec-flavoured report with UX conscience — the balsamic release

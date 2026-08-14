@@ -1,0 +1,7 @@
+{
+  "name": "mockurator",
+  "private": true,
+  "description": "Slice it. Mark it. Send it. — test battery for the single-file app",
+  "scripts": { "test": "node tests/run.js" },
+  "devDependencies": { "jsdom": "^24.0.0" }
+}

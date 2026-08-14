@@ -190,6 +190,8 @@ a.plainlink{color:var(--accent);text-decoration:underline}
 .bmrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 6px}
 .bmrow .bm{margin:0}
 .bmrow .mini{margin:0}
+#alignBar{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;width:100%}
+#alignBar .mini{padding:3px 9px;font-size:13px}
 #wchips{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
 .wchip{border:1px solid var(--line);background:var(--white);border-radius:7px;padding:6px 4px;
   font-size:11.5px;cursor:pointer;color:var(--ink2);text-align:center}
@@ -201,6 +203,20 @@ body.wfmode #wchips{grid-template-columns:1fr 1fr 1fr}
 .piece .wdot{width:26px;height:26px;border-radius:6px;flex:0 0 auto;border:2px solid var(--line);
   background:var(--white);color:var(--ink);font-size:10px;font-weight:700;text-align:center;line-height:24px}
 .mini.info{border-radius:50%;width:24px;height:24px;padding:0;font-weight:700;color:var(--accent)}
+#devPreview{position:fixed;inset:0;background:rgba(30,28,23,.55);display:none;align-items:center;justify-content:center;z-index:70}
+.devWrap{background:#f7f4ea;border-radius:14px;padding:20px 24px;max-width:96vw;max-height:92vh;overflow:auto;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.4)}
+.devHead{font-size:13px;color:var(--muted);margin:0 30px 14px 0}
+.devCols{display:flex;gap:22px;align-items:flex-start}
+.devCol{min-width:0}
+.devLabel{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.devFrame{border:3px solid #2b2a24;border-radius:12px;background:#fff;overflow:hidden;position:relative}
+.devFrame.desk{border-radius:10px;border-top-width:14px}
+.devFrame.tab{border-width:8px;border-radius:16px}
+.devFrame.phone{border-width:8px;border-radius:22px}
+.devFrame .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:38%;height:12px;background:#2b2a24;border-radius:0 0 8px 8px;z-index:1}
+.devFrame canvas{display:block;width:100%;height:auto}
+#devClose{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted)}
+#devClose:hover{color:var(--ink)}
 #toolModal{position:fixed;inset:0;background:rgba(30,28,23,.45);display:none;align-items:center;justify-content:center;z-index:60}
 #toolModal .toolCard{background:#f7f4ea;max-width:540px;width:92%;border-radius:12px;padding:20px 24px;
   box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative;max-height:82vh;overflow:auto;font-size:14px;line-height:1.55;color:var(--ink2)}
@@ -250,10 +266,11 @@ a.plainlink:hover{color:#137059}
 <body>
 
 <header>
-  <div class="brand"><img id="brandIcon" alt="">MockuRATOR <span class="ver" id="verBadge">v1.5.0</span></div>
+  <div class="brand"><img id="brandIcon" alt=""><span id="brandName">MockuRATOR</span> <span class="ver" id="verBadge">v1.5.0</span></div>
   <input id="projectName" placeholder="Project name (used in file names)">
   <button class="hbtn" id="btnPanel" title="Show or hide the side panel">Panel</button>
   <span class="spacer"></span>
+  <button class="hbtn" id="btnPreview" title="Preview the board at desktop, tablet, and phone scale">👁 Preview</button>
   <button class="hbtn" id="btnTheme" title="Cycle colour theme — easier on the eyes">🎨</button>
   <button class="hbtn" id="btnOpen">Open image</button>
   <button class="hbtn" id="btnCapture" title="Capture any window, browser tab, or screen via the system picker (works on the HTTPS site)">📸 Capture</button>
@@ -311,7 +328,18 @@ a.plainlink:hover{color:#137059}
     </div>
     <div id="hintBar"><b>S</b> slice · <b>V</b> move &amp; edit marks · <span class="kbd">?</span> all shortcuts</div>
     <button id="helpBtn" title="Keyboard shortcuts (press ?)">?</button>
-    <div id="toolModal">
+    <div id="devPreview">
+  <div class="devWrap">
+    <button id="devClose" title="Close">✕</button>
+    <div class="devHead">Device preview — the same board at true relative scale. If it reads on the phone, it reads everywhere.</div>
+    <div class="devCols">
+      <div class="devCol" style="flex:1280"><div class="devLabel">🖥 Desktop · 1280</div><div class="devFrame desk"><canvas id="devD"></canvas></div></div>
+      <div class="devCol" style="flex:820"><div class="devLabel">📱 Tablet · 820</div><div class="devFrame tab"><canvas id="devT"></canvas></div></div>
+      <div class="devCol" style="flex:390"><div class="devLabel">📱 Phone · 390</div><div class="devFrame phone"><div class="notch"></div><canvas id="devP"></canvas></div></div>
+    </div>
+  </div>
+</div>
+<div id="toolModal">
   <div class="toolCard">
     <button id="toolClose" title="Close">✕</button>
     <div data-info="snap">
@@ -435,6 +463,16 @@ a.plainlink:hover{color:#137059}
       <div id="groupBar" style="display:none">
         <button class="mini primaryish" id="btnGroup">Group selected</button>
         <button class="mini" id="btnMselClear">Clear selection</button>
+        <div id="alignBar">
+          <button class="mini" id="alL" title="Align left edges">⇤</button>
+          <button class="mini" id="alC" title="Align horizontal centers">↔</button>
+          <button class="mini" id="alR" title="Align right edges">⇥</button>
+          <button class="mini" id="alT" title="Align top edges">⤒</button>
+          <button class="mini" id="alM" title="Align vertical centers">↕</button>
+          <button class="mini" id="alB" title="Align bottom edges">⤓</button>
+          <button class="mini" id="dsH" title="Distribute horizontally (equal gaps)">⋯</button>
+          <button class="mini" id="dsV" title="Distribute vertically (equal gaps)">⋮</button>
+        </div>
       </div>
       <div id="pieces"></div>
       <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group. To grow a group: click its row, Ctrl-click more items, then Add.</div>
@@ -481,7 +519,8 @@ a.plainlink:hover{color:#137059}
 
 <script>
 'use strict';
-const APP_VERSION='1.23.0', APP_BUILD='2026-08-11';
+/* ================= VERSION ================= */
+const APP_VERSION='1.24.1', APP_BUILD='2026-08-11';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -599,6 +638,7 @@ function drawCaption(g,a){
   L.lines.forEach((ln,i)=>g.fillText(ln, x+L.padX, y+L.padY+L.lineH*(i+0.5)));
   g.textBaseline='alphabetic';
 }
+/* ================= ANNO RENDERING ================= */
 function drawAnno(g,a){
   if(a.t==='widget'){ drawWidget(g,a); return; }
   g.strokeStyle=a.c; g.fillStyle=a.c; g.lineWidth=a.lw||3; g.lineJoin='round'; g.lineCap='round';
@@ -635,6 +675,7 @@ function drawGroupCaps(g){
     drawCaption(g,{t:'box',x:b.x,y:b.y,cap:gr.cap,c:gr.c,lw:strokeW()});
   });
 }
+/* ================= HIT TESTING ================= */
 function hitAnno(p){
   // topmost box or arrow near the point (for editing in Move mode)
   for(let i=annos.length-1;i>=0;i--){
@@ -700,9 +741,10 @@ function render(){
     const d=Math.max(1.2,1.4/view.s);
     for(let gx=x0;gx<=x1;gx+=gs)for(let gy=y0;gy<=y1;gy+=gs)ctx.fillRect(gx,gy,d,d);
   }
-  if(drag&&drag.kind==='wdraw'){
+  if(drag&&(drag.kind==='wdraw'||drag.kind==='marquee')){
     const r=norm(drag.a,drag.b);
     if(r.w>4&&r.h>4){ ctx.setLineDash([lw(6),lw(4)]); ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5);
+      if(drag.kind==='marquee'){ ctx.fillStyle='rgba(37,99,235,.07)'; ctx.fillRect(r.x,r.y,r.w,r.h); }
       ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.setLineDash([]); }
   }
   if(sel.kind==='mark'&&annos[sel.i]){
@@ -765,6 +807,7 @@ function refreshPieces(){
   const addMode = sel.kind==='group' && groups[sel.i] && msel.length>=1;
   $('groupBar').style.display=(msel.length>=2||addMode)?'flex':'none';
   $('btnGroup').textContent=addMode?('Add to group ('+msel.length+')'):('Group selected ('+msel.length+')');
+  $('alignBar').style.display=msel.length>=2?'flex':'none';
   if(!total && !attachments.length){ wrap.innerHTML='<div class="emptyP">Cut a section with <b>S</b> or draw a box/arrow — items appear here, each with its own note.</div>'; return; }
 
   const mkPieceRow=(s,i,member)=>{
@@ -1005,6 +1048,7 @@ canvas.addEventListener('pointerdown',e=>{
         render(); refreshPieces(); return;
       }
       clearSel(); selected=-1;
+      drag={kind:'marquee',a:p,b:p};
     }
     render(); refreshPieces(); return;
   }
@@ -1038,6 +1082,7 @@ canvas.addEventListener('pointermove',e=>{
     if(Math.hypot(p.x-l.x,p.y-l.y)>2/view.s)drag.pts.push(p);
   }
   else if(drag.kind==='wdraw'){ drag.b=p; }
+  else if(drag.kind==='marquee'){ drag.b=p; render(); }
   else if(drag.kind==='moveAnno'){
     const a=annos[drag.i], dx=p.x-drag.start.x, dy=p.y-drag.start.y;
     if(!drag.moved&&Math.hypot(dx,dy)>3/view.s)drag.moved=true;
@@ -1067,6 +1112,26 @@ canvas.addEventListener('pointerup',()=>{
   if(!d){render();return;}
   if(d.kind==='pan'){ setTool(tool); render(); return; }
   if(d.kind==='moveSlice'){ sync(); return; }
+  if(d.kind==='marquee'){
+    const r=norm(d.a,d.b);
+    if(r.w>6&&r.h>6){
+      const hit=[];
+      const ix=(b)=>!(b.x>r.x+r.w||b.x+b.w<r.x||b.y>r.y+r.h||b.y+b.h<r.y);
+      slices.forEach((s,i)=>{ if(!s.g&&ix({x:s.x,y:s.y,w:s.sw,h:s.sh}))hit.push('piece:'+i); });
+      annos.forEach((a,i)=>{
+        if(a.g)return;
+        let b=null;
+        if(a.t==='box'||a.t==='widget')b={x:a.x,y:a.y,w:a.w,h:a.h};
+        else if(a.t==='arrow')b={x:Math.min(a.x1,a.x2),y:Math.min(a.y1,a.y2),w:Math.abs(a.x2-a.x1),h:Math.abs(a.y2-a.y1)};
+        else if(a.t==='text')b={x:a.x,y:a.y-a.size,w:(a.text||'').length*a.size*0.55,h:a.size*1.3};
+        if(b&&ix(b))hit.push('mark:'+i);
+      });
+      if(hit.length>=2){ msel=hit; clearSel(); }
+      else if(hit.length===1){ const [k,i]=hit[0].split(':'); msel=[]; k==='piece'?selectPiece(+i):selectMark(+i); }
+      else msel=[];
+    }
+    sync(); return;
+  }
   if(d.kind==='wdraw'){
     const spec=WIDGETS[pendingKind]; if(!spec){render();return;}
     const r=norm(d.a,d.b);
@@ -1128,6 +1193,7 @@ const WIDGETS={
   link:    {name:'Link',     w:130,h:26,  label:'A link'}
 };
 const lwv=v=>v/view.s;
+/* ================= WIDGET SKETCH DIALECT ================= */
 function skRect(g,x,y,w,h,r){
   // the sketch dialect: double-stroked, slightly offset — hand-drawn, deterministically
   g.beginPath(); g.roundRect(x,y,w,h,r); g.fillStyle=W_FILL; g.fill();
@@ -1673,6 +1739,7 @@ function downloadBlob(blob,name){
   a.href=URL.createObjectURL(blob); a.download=name; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
+/* ================= SAVE / LOAD ================= */
 function serialize(){
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
     project:$('projectName').value,notes:$('notes').value,pageURL:$('pageURL').value.trim(),savedAt:new Date().toISOString(),
@@ -1723,6 +1790,7 @@ function wrapLines(g,text,maxW){
   return out;
 }
 
+/* ================= EXPORT PIPELINE ================= */
 function renderBoard(cb){
   const inclImgs=slices.length===0;
   const b=contentBBox(inclImgs);
@@ -1786,6 +1854,7 @@ $('btnExport').onclick=()=>{
 function colorName(hex){
   return {'#e0342b':'red','#f59e0b':'orange','#2563eb':'blue','#16a34a':'green','#111827':'black'}[hex]||hex;
 }
+/* ================= REPORT ================= */
 function buildReport(){
   const title=$('projectName').value.trim()||'Untitled';
   const notes=$('notes').value.trim();
@@ -2055,6 +2124,56 @@ document.querySelectorAll('.micBtn').forEach(btn=>{
   });
 });
 
+/* ---------------- device preview ---------------- */
+$('btnPreview').onclick=()=>{
+  renderBoard(oc=>{
+    if(!oc){ toast('Nothing to preview yet — place something first.'); return; }
+    ['devD','devT','devP'].forEach(id=>{
+      const c=$(id); c.width=oc.width; c.height=oc.height;
+      c.getContext('2d').drawImage(oc,0,0);
+    });
+    $('devPreview').style.display='flex';
+  });
+};
+$('devClose').onclick=()=>{ $('devPreview').style.display='none'; };
+$('devPreview').addEventListener('click',e=>{ if(e.target===$('devPreview'))$('devPreview').style.display='none'; });
+
+/* ---------------- alignment ---------------- */
+function itemBox(key){
+  const [k,n]=key.split(':'), i=+n;
+  if(k==='piece'){ const s=slices[i]; if(!s)return null;
+    return {x:s.x,y:s.y,w:s.sw,h:s.sh,move:(nx,ny)=>{s.x=nx;s.y=ny;}}; }
+  const a=annos[i]; if(!a)return null;
+  if(a.t==='arrow'){ const x=Math.min(a.x1,a.x2),y=Math.min(a.y1,a.y2),w=Math.abs(a.x2-a.x1),h=Math.abs(a.y2-a.y1);
+    return {x,y,w,h,move:(nx,ny)=>{const dx=nx-x,dy=ny-y;a.x1+=dx;a.x2+=dx;a.y1+=dy;a.y2+=dy;}}; }
+  if(a.t==='text'){ const w=(a.text||'').length*a.size*0.55,h=a.size*1.3;
+    return {x:a.x,y:a.y-a.size,w,h,move:(nx,ny)=>{a.x=nx;a.y=ny+a.size;}}; }
+  return {x:a.x,y:a.y,w:a.w,h:a.h,move:(nx,ny)=>{a.x=nx;a.y=ny;}};
+}
+function alignSel(mode){
+  if(msel.length<2)return;
+  const items=msel.map(itemBox).filter(Boolean);
+  boardSnap();
+  const minX=Math.min(...items.map(b=>b.x)), maxR=Math.max(...items.map(b=>b.x+b.w));
+  const minY=Math.min(...items.map(b=>b.y)), maxB=Math.max(...items.map(b=>b.y+b.h));
+  const cx=(minX+maxR)/2, cy=(minY+maxB)/2;
+  if(mode==='L')items.forEach(b=>b.move(minX,b.y));
+  if(mode==='R')items.forEach(b=>b.move(maxR-b.w,b.y));
+  if(mode==='C')items.forEach(b=>b.move(cx-b.w/2,b.y));
+  if(mode==='T')items.forEach(b=>b.move(b.x,minY));
+  if(mode==='B')items.forEach(b=>b.move(b.x,maxB-b.h));
+  if(mode==='M')items.forEach(b=>b.move(b.x,cy-b.h/2));
+  if(mode==='DH'){ const s=[...items].sort((a,b)=>a.x-b.x);
+    const span=(maxR-minX)-s.reduce((t,b)=>t+b.w,0), gap=span/Math.max(1,s.length-1);
+    let x=minX; s.forEach(b=>{b.move(x,b.y); x+=b.w+gap;}); }
+  if(mode==='DV'){ const s=[...items].sort((a,b)=>a.y-b.y);
+    const span=(maxB-minY)-s.reduce((t,b)=>t+b.h,0), gap=span/Math.max(1,s.length-1);
+    let y=minY; s.forEach(b=>{b.move(b.x,y); y+=b.h+gap;}); }
+  render(); refreshPieces(); scheduleAutosave();
+}
+[['alL','L'],['alC','C'],['alR','R'],['alT','T'],['alM','M'],['alB','B'],['dsH','DH'],['dsV','DV']]
+  .forEach(([id,m])=>{ $(id).onclick=()=>alignSel(m); });
+
 /* ---------------- wireframe mode ---------------- */
 let wfMode=false;
 const WF_GRID=8;
@@ -2062,6 +2181,8 @@ function snapv(v){ return wfMode ? Math.round(v/WF_GRID)*WF_GRID : v; }
 function setWfMode(on,announce){
   wfMode=!!on;
   document.body.classList.toggle('wfmode',wfMode);
+  $('brandName').textContent=wfMode?'MockuFRAME':'MockuRATOR';
+  document.title=wfMode?'MockuFRAME — draw it, spec it, build it':'MockuRATOR — slice it, mark it, send it';
   $('wfToggle').textContent=wfMode?'Exit Wireframe Mode':'Enter Wireframe Mode';
   try{ localStorage.setItem('mockurator:wfmode',wfMode?'1':'0'); }catch(e){}
   if(wfMode&&images.length===0)$('dropHint').style.display='none';
