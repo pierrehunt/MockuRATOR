@@ -71,8 +71,25 @@ provenance · MockuLog attachments · AI hand-off prompts with copy buttons · �
 tips card · 🎨 themes (Paper / High-contrast / Dark / Katana) · MockuSnap/Companion extension ·
 100+ jsdom tests · versioning religion (badge, stamps, changelog).
 
-## What's genuinely new to build
-1. **The widget palette** — Claude's standing debt: hand-drawn sketchy SVG widgets in the
+## STATUS UPDATE — 2026-08-13: the back reached the front
+The brief below was written before the build. Since then, in one night plus a day:
+- **SHIPPED v1.21** — the 16-widget sketch palette (Claude's drawing debt, paid in canvas ink),
+  drag-to-place, in-place rename, behaviour notes, starter layouts (Login/Dashboard/Settings),
+  spec report with UX conscience.
+- **SHIPPED v1.22** — Enter **Wireframe Mode**: focused UI, dot grid, 8px snap; widgets join groups.
+- **SHIPPED v1.23** — the consumer's five notches (the receiving AI reviewed the package format):
+  wrapped caption pills, geometry + [type · severity] in report.md, Page URL field — and the
+  **AI reply-back convention** (by:"ai" marks reload onto the board).
+- **SHIPPED v1.24** — the name: **MockuFRAME** (wordmark swaps in mode); marquee select,
+  eight alignment/distribute tools, 👁 triple device preview.
+- **SHIPPED v1.24.1** — infrastructure: 13-suite battery in tests/, version-aware assertions,
+  section banners, ARCHITECTURE.md, wedge-first README, DEMO-SCRIPT.md.
+- **VALIDATED** — market audit vs Jam/Marker/Excalidraw/Balsamiq/Markagent: the organs exist
+  separately; the organism (capture→annotate→telemetry→wireframe→spec→reply-back, one sovereign
+  file) does not. Weighted ~7.8/10 as public product, 9.5 as personal instrument.
+
+## Still on the shelf (what remains genuinely new to build)
+1. ~~The widget palette~~ — **PAID** (v1.21, canvas dialect; SVG satellite *packs* remain future): hand-drawn sketchy SVG widgets in the
    brand dialect. Loot the *taxonomy* from free component libraries (button, input, select,
    checkbox, radio, table, card, navbar, tabs, modal, badge, toast, breadcrumb, avatar,
    search, pagination...) — steal the vocabulary, draw the dialect.

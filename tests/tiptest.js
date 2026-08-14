@@ -9,11 +9,11 @@ const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
 ok('tip card present on empty state',!!$('tipCard'));
 ok('a tip is showing',$('tipBody').textContent.length>20);
-ok('dots rendered (17 tips)',$('tipDots').children.length===17);
+ok('dots rendered (21 tips)',$('tipDots').children.length===21);
 const before=$('tipBody').textContent;
 $('tipNext').click();
 ok('next button advances the tip',$('tipBody').textContent!==before);
-ok('help overlay has all 17 tips',$('helpTips').children.length===17);
+ok('help overlay has all 21 tips',$('helpTips').children.length===21);
 ok('grouping tip is in the rotation',[...$('helpTips').children].some(li=>/Group related marks/.test(li.textContent)));
 console.log(out.join('\n'));
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL TIP TESTS PASSED':'FAILED');

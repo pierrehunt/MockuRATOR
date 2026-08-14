@@ -11,7 +11,7 @@ const pt=(type,wx,wy)=>canvas.dispatchEvent(new w.MouseEvent(type,{clientX:wx+60
 const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
 ok('palette section present',!!$('secWidgets'));
-ok('16 widget chips rendered',d.querySelectorAll('.wchip').length===16);
+ok('19 widget+frame chips rendered',d.querySelectorAll('.wchip').length===19);
 
 // arm the Button chip, drag one onto the canvas
 w.eval("images=[{img:{},dataURL:'x',x:0,y:0,w:1400,h:900}]; view={s:1,x:60,y:60}; refreshPieces();");

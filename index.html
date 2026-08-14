@@ -483,12 +483,35 @@ a.plainlink:hover{color:#137059}
       <div class="bmrow"><button class="mini primaryish" id="wfToggle">Enter Wireframe Mode</button></div>
       <div class="railTip small">Pick a chip, then drag on the canvas to place it (or just click for a default size). Double-click any widget to rename it; its note says what it <i>does</i> — the report writes the build spec.</div>
       <div id="wchips"></div>
+      <div class="railTip small" style="margin-top:8px"><b>Screens (device frames):</b></div>
+      <div class="bmrow" id="framechips">
+        <button class="mini" data-f="phone">📱 Phone</button>
+        <button class="mini" data-f="tablet">📲 Tablet</button>
+        <button class="mini" data-f="desktop">🖥️ Desktop</button>
+      </div>
+      <div class="railTip small">A frame is a screen: widgets inside belong to it, arrows between screens become <b>user flows</b>, and the report writes a per-screen build spec. Drag its name or border to move the whole screen.</div>
       <div class="railTip small" style="margin-top:8px"><b>Starter layouts:</b></div>
       <div class="bmrow">
         <button class="mini" id="presetLogin">Login</button>
         <button class="mini" id="presetDash">Dashboard</button>
         <button class="mini" id="presetSettings">Settings</button>
       </div>
+      <div class="railTip small" style="margin-top:8px"><b>Template packs (multi-screen):</b></div>
+      <div class="bmrow" style="flex-wrap:wrap">
+        <button class="mini" id="tplAuth">Auth ×3</button>
+        <button class="mini" id="tplSaas">SaaS shell</button>
+        <button class="mini" id="tplShop">Shop ×4</button>
+        <button class="mini" id="tplLanding">Landing</button>
+        <button class="mini" id="tplPricing">Pricing</button>
+      </div>
+      <div class="railTip small">Packs drop whole screen sets with the flows already wired. Any <b>mockurator-template</b> JSON dropped on the canvas inserts the same way — share packs as plain files.</div>
+    </div>
+
+    <div class="railSec" id="secRails">
+      <h3>Guide rails — UX conscience <button class="flip" data-sec="secRails" title="Move to the other side">⇄</button></h3>
+      <label class="railTip small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="railsMaster" checked> Rails on — nudges here, conscience in the report</label>
+      <div id="railList"></div>
+      <div id="railFinds"></div>
     </div>
 
     <div class="railSec" id="secSnap">
@@ -520,7 +543,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.24.1', APP_BUILD='2026-08-11';
+const APP_VERSION='1.25.0', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -640,6 +663,7 @@ function drawCaption(g,a){
 }
 /* ================= ANNO RENDERING ================= */
 function drawAnno(g,a){
+  if(a.t==='frame'){ drawFrame(g,a); return; }
   if(a.t==='widget'){ drawWidget(g,a); return; }
   g.strokeStyle=a.c; g.fillStyle=a.c; g.lineWidth=a.lw||3; g.lineJoin='round'; g.lineCap='round';
   if(a.t==='box'){
@@ -680,6 +704,7 @@ function hitAnno(p){
   // topmost box or arrow near the point (for editing in Move mode)
   for(let i=annos.length-1;i>=0;i--){
     const a=annos[i];
+    if(a.t==='frame')continue;   // frames are hit via hitFrame (border + name strip only)
     if(a.t==='box'){
       const near=8/view.s;
       const inside=(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h);
@@ -731,8 +756,12 @@ function render(){
     ctx.strokeRect(s.x,s.y,s.sw,s.sh);
   });
 
-  annos.forEach((a,ix)=>{ if(ix!==editIdx)drawAnno(ctx,a); else if(a.t==='widget'){ const keep=a.label; a.label=''; drawWidget(ctx,a); a.label=keep; } });
+  annos.forEach((a,ix)=>{ if(a.t!=='frame')return;
+    if(ix!==editIdx)drawFrame(ctx,a); else { const keep=a.label; a.label=''; drawFrame(ctx,a); a.label=keep; } });
+  annos.forEach((a,ix)=>{ if(a.t==='frame')return;
+    if(ix!==editIdx)drawAnno(ctx,a); else if(a.t==='widget'){ const keep=a.label; a.label=''; drawWidget(ctx,a); a.label=keep; } });
   drawGroupCaps(ctx);
+  drawAIThreads(ctx);
   if(wfMode){
     const W=canvas.width/dpr, H=canvas.height/dpr, gs=24;
     const x0=Math.floor((-view.x/view.s)/gs)*gs, y0=Math.floor((-view.y/view.s)/gs)*gs;
@@ -750,7 +779,7 @@ function render(){
   if(sel.kind==='mark'&&annos[sel.i]){
     const a=annos[sel.i], hs=13/view.s;
     ctx.strokeStyle='#2563eb'; ctx.lineWidth=lw(1.5);
-    if(a.t==='box'||a.t==='widget'){
+    if(a.t==='box'||a.t==='widget'||a.t==='frame'){
       ctx.setLineDash([lw(6),lw(4)]);
       ctx.strokeRect(a.x-lw(4),a.y-lw(4),a.w+lw(8),a.h+lw(8));
       ctx.setLineDash([]);
@@ -795,7 +824,7 @@ function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
   groups=groups.filter(g=>groupMembers(g.id).length>0);   // prune empty groups
-  const markCount=annos.filter(a=>['box','arrow','text','widget'].includes(a.t)).length;
+  const markCount=annos.filter(a=>['box','arrow','text','widget','frame'].includes(a.t)).length;
   const total=slices.length+markCount;
   const noNote=slices.filter(s=>!s.cap&&!s.g).length
     +annos.filter(a=>(a.t==='box'||a.t==='arrow'||a.t==='widget')&&!a.cap&&!a.g).length
@@ -876,6 +905,24 @@ function refreshPieces(){
     });
   });
 
+  // screens first — the containers people navigate by
+  function mkFrameRow(a,i){
+    const on=(sel.kind==='mark'&&sel.i===i);
+    const spec=FRAMES[a.device]||{name:'Screen',icon:'▭'};
+    const item=document.createElement('div'); item.className='piece markrow'+(on?' sel':'');
+    const dot=document.createElement('span'); dot.className='wdot'; dot.textContent=spec.icon;
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl';
+    lbl.textContent='Screen · '+spec.name+(((a.label||'').trim())?(' · “'+a.label+'”'):'');
+    info.appendChild(lbl);
+    const cap=document.createElement('div'); cap.className='pcap'+(a.cap?'':' empty'); cap.textContent=a.cap||'no note'; info.appendChild(cap);
+    const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete screen (its widgets stay)';
+    x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
+    item.onclick=()=>{ msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.append(dot,info,x); return item;
+  }
+  annos.forEach((a,i)=>{ if(a.t==='frame')wrap.appendChild(mkFrameRow(a,i)); });
+
   // then ungrouped items
   slices.forEach((s,i)=>{ if(!s.g){ const r=mkPieceRow(s,i,false); if(r)wrap.appendChild(r);} });
   annos.forEach((a,i)=>{ if((a.t==='box'||a.t==='arrow')&&!a.g){ const r=mkMarkRow(a,i,false); if(r)wrap.appendChild(r);} });
@@ -924,6 +971,7 @@ function refreshPieces(){
     x.onclick=ev=>{ ev.stopPropagation(); const rm=attachments.splice(i,1)[0]; undoStack.push({k:'delAtt',i,at:rm}); sync(); };
     item.append(ic,info,x); wrap.appendChild(item);
   });
+  if(window.refreshRails)refreshRails();
 }
 function centerOn(s){
   const W=canvas.width/dpr, H=canvas.height/dpr;
@@ -933,7 +981,7 @@ function centerOn(s){
 function centerOnAnno(a){
   const W=canvas.width/dpr, H=canvas.height/dpr;
   let cx,cy;
-  if(a.t==='box'||a.t==='widget'){cx=a.x+a.w/2;cy=a.y+a.h/2;}
+  if(a.t==='box'||a.t==='widget'||a.t==='frame'){cx=a.x+a.w/2;cy=a.y+a.h/2;}
   else if(a.t==='text'){cx=a.x+80;cy=a.y-a.size/2;}
   else {cx=(a.x1+a.x2)/2;cy=(a.y1+a.y2)/2;}
   view.x=W/2-cx*view.s; view.y=H/2-cy*view.s;
@@ -948,7 +996,8 @@ function contentBBox(includeImages){
   groups.forEach(gr=>{ if(!gr.cap)return; const gb=groupBBox(gr.id); if(!gb)return;
     const cb=capLayout(ctx,{t:'box',x:gb.x,y:gb.y,cap:gr.cap,c:gr.c,lw:strokeW()}); acc(cb.x,cb.y,cb.x+cb.w,cb.y+cb.h); });
   annos.forEach(a=>{
-    if(a.t==='box'||a.t==='widget')acc(a.x,a.y,a.x+a.w,a.y+a.h);
+    if(a.t==='frame'){ const tr=frameTitleRect(a); acc(a.x,tr.y,a.x+a.w,a.y+a.h); }
+    else if(a.t==='box'||a.t==='widget')acc(a.x,a.y,a.x+a.w,a.y+a.h);
     else if(a.t==='arrow')acc(Math.min(a.x1,a.x2),Math.min(a.y1,a.y2),Math.max(a.x1,a.x2),Math.max(a.y1,a.y2));
     else if(a.t==='pen')a.pts.forEach(p=>acc(p.x,p.y,p.x,p.y));
     if((a.t==='box'||a.t==='arrow')&&a.cap&&!a.g){ const cb=capLayout(ctx,a); acc(cb.x,cb.y,cb.x+cb.w,cb.y+cb.h); }
@@ -1016,7 +1065,7 @@ canvas.addEventListener('pointerdown',e=>{
   // transform handles on the selected mark are live in EVERY tool — visible means grabbable
   if(sel.kind==='mark'&&annos[sel.i]){
     const a=annos[sel.i], hr=20/view.s;
-    if(a.t==='box'||a.t==='widget'){
+    if(a.t==='box'||a.t==='widget'||a.t==='frame'){
       const corners={nw:[a.x,a.y],ne:[a.x+a.w,a.y],sw:[a.x,a.y+a.h],se:[a.x+a.w,a.y+a.h]};
       for(const k in corners){
         if(Math.hypot(p.x-corners[k][0],p.y-corners[k][1])<hr){
@@ -1031,6 +1080,9 @@ canvas.addEventListener('pointerdown',e=>{
     // a selected box is body-draggable even when unfilled
     if(sel.kind==='mark'&&annos[sel.i]){
       const a=annos[sel.i];
+      if(a.t==='frame'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
+        drag=mkFrameDrag(sel.i,p); return;      // selected screen: body-drag moves screen + contents
+      }
       if((a.t==='box'||a.t==='widget')&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
         drag={kind:'moveAnno',i:sel.i,start:p,orig:{...a},moved:false}; return;
       }
@@ -1045,6 +1097,12 @@ canvas.addEventListener('pointerdown',e=>{
       if(ai>=0){
         selectMark(ai);
         drag={kind:'moveAnno',i:ai,start:p,orig:{...annos[ai]},moved:false};
+        render(); refreshPieces(); return;
+      }
+      const fi=hitFrame(p);
+      if(fi>=0){
+        selectMark(fi);
+        drag=mkFrameDrag(fi,p);
         render(); refreshPieces(); return;
       }
       clearSel(); selected=-1;
@@ -1064,7 +1122,7 @@ canvas.addEventListener('pointermove',e=>{
       const a=annos[sel.i], hr=20/view.s;
       const toolCur = tool==='pan'?'grab' : tool==='move'?'default' : tool==='text'?'text':'crosshair';
       let cur=toolCur;
-      if(a.t==='box'||a.t==='widget'){
+      if(a.t==='box'||a.t==='widget'||a.t==='frame'){
         if(Math.hypot(p.x-a.x,p.y-a.y)<hr||Math.hypot(p.x-(a.x+a.w),p.y-(a.y+a.h))<hr)cur='nwse-resize';
         else if(Math.hypot(p.x-(a.x+a.w),p.y-a.y)<hr||Math.hypot(p.x-a.x,p.y-(a.y+a.h))<hr)cur='nesw-resize';
         else if(tool==='move'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h)cur='move';
@@ -1091,6 +1149,23 @@ canvas.addEventListener('pointermove',e=>{
       else{ a.x1=drag.orig.x1+dx; a.y1=drag.orig.y1+dy; a.x2=drag.orig.x2+dx; a.y2=drag.orig.y2+dy; }
     }
   }
+  else if(drag.kind==='moveFrame'){
+    const dx=p.x-drag.start.x, dy=p.y-drag.start.y;
+    if(!drag.moved&&Math.hypot(dx,dy)>3/view.s){ drag.moved=true;
+      undoStack.push({k:'boardSnap',slices:drag.snap.slices,annos:drag.snap.annos,groups:drag.snap.groups}); }
+    if(drag.moved){
+      const f=annos[drag.i];
+      const sdx=snapv(drag.orig.x+dx)-drag.orig.x, sdy=snapv(drag.orig.y+dy)-drag.orig.y;
+      f.x=drag.orig.x+sdx; f.y=drag.orig.y+sdy;
+      drag.mem.annos.forEach((ai,k)=>{ const a=annos[ai], o=drag.morig[k]; if(!a||!o)return;
+        if(a.t==='arrow'){a.x1=o.x1+sdx;a.y1=o.y1+sdy;a.x2=o.x2+sdx;a.y2=o.y2+sdy;}
+        else if(a.t==='pen'){a.pts=o.pts.map(q=>({x:q.x+sdx,y:q.y+sdy}));}
+        else {a.x=o.x+sdx;a.y=o.y+sdy;} });
+      drag.mem.slices.forEach((si,k)=>{ const s=slices[si]; if(s){s.x=drag.sorig[k].x+sdx;s.y=drag.sorig[k].y+sdy;} });
+      drag.glue.forEach((gl,k)=>{ const a=annos[gl.i]; if(!a)return; const o=drag.gorig[k];
+        if(gl.end===1){a.x1=o.x1+sdx;a.y1=o.y1+sdy;} else {a.x2=o.x2+sdx;a.y2=o.y2+sdy;} });
+    }
+  }
   else if(drag.kind==='resizeBox'){
     const a=annos[drag.i], o=drag.orig;
     let x1=o.x, y1=o.y, x2=o.x+o.w, y2=o.y+o.h;
@@ -1098,7 +1173,7 @@ canvas.addEventListener('pointermove',e=>{
     if(drag.corner.indexOf('n')>=0)y1=p.y; if(drag.corner.indexOf('s')>=0)y2=p.y;
     a.x=Math.min(x1,x2); a.y=Math.min(y1,y2);
     a.w=Math.max(8,Math.abs(x2-x1)); a.h=Math.max(8,Math.abs(y2-y1));
-    if(a.t==='widget'){a.x=snapv(a.x);a.y=snapv(a.y);a.w=Math.max(WF_GRID,snapv(a.w));a.h=Math.max(WF_GRID,snapv(a.h));}
+    if(a.t==='widget'||a.t==='frame'){a.x=snapv(a.x);a.y=snapv(a.y);a.w=Math.max(WF_GRID,snapv(a.w));a.h=Math.max(WF_GRID,snapv(a.h));}
   }
   else if(drag.kind==='arrowEnd'){
     const a=annos[drag.i];
@@ -1132,7 +1207,18 @@ canvas.addEventListener('pointerup',()=>{
     }
     sync(); return;
   }
+  if(d.kind==='moveFrame'){ sync(); return; }   // undo snapshot already pushed on first movement
   if(d.kind==='wdraw'){
+    if(pendingKind&&pendingKind.indexOf('frame:')===0){
+      const dev=pendingKind.slice(6), fspec=FRAMES[dev]; if(!fspec){render();return;}
+      const r=norm(d.a,d.b), big=(r.w>60&&r.h>60);
+      const w=snapv(big?r.w:fspec.w), h=snapv(big?r.h:fspec.h);
+      const x=snapv(big?r.x:d.a.x-w/2), y=snapv(big?r.y:d.a.y-h/2);
+      annos.push({t:'frame',device:dev,x,y,w,h,label:'Screen '+(frameSeq++)});
+      undoStack.push({k:'anno'});
+      $('dropHint').style.display='none';
+      selectMark(annos.length-1); sync(); return;
+    }
     const spec=WIDGETS[pendingKind]; if(!spec){render();return;}
     const r=norm(d.a,d.b);
     const w=snapv((r.w>14&&r.h>14)?r.w:spec.w), h=snapv((r.w>14&&r.h>14)?r.h:spec.h);
@@ -1157,6 +1243,7 @@ canvas.addEventListener('dblclick',e=>{
   const p=toWorld(e);
   const ai=hitAnno(p);
   if(ai>=0&&(annos[ai].t==='text'||annos[ai].t==='widget')){ e.preventDefault(); openText(e,p,ai); return; }
+  if(ai<0){ const fi=hitFrame(p); if(fi>=0){ e.preventDefault(); openText(e,p,fi); return; } }
   if(ai<0&&hitSlice(p)<0&&tool!=='text'){ e.preventDefault(); openText(e,p,-1); }
 });
 canvas.addEventListener('wheel',e=>{
@@ -1193,6 +1280,92 @@ const WIDGETS={
   link:    {name:'Link',     w:130,h:26,  label:'A link'}
 };
 const lwv=v=>v/view.s;
+/* ================= DEVICE FRAMES (screens) ================= */
+// A frame is a screen: t:'frame', device phone|tablet|desktop, label = screen name,
+// cap = what the screen is for. Widgets whose center sits inside belong to it (geometric,
+// never stored). Arrows whose two ends sit in two different frames are USER FLOWS.
+const FRAMES={
+  phone:  {name:'Phone',  icon:'📱', w:390,  h:844},
+  tablet: {name:'Tablet', icon:'📲', w:768,  h:1024},
+  desktop:{name:'Desktop',icon:'🖥️', w:1280, h:800}
+};
+let frameSeq=1;
+function frameTitleRect(a){ const h=30; return {x:a.x, y:a.y-h-6, w:Math.max(150,a.w*0.5), h}; }
+function drawFrame(g,a){
+  const {x,y,w,h}=a, spec=FRAMES[a.device]||FRAMES.desktop;
+  const r=a.device==='phone'?26:a.device==='tablet'?18:10;
+  skRect(g,x,y,w,h,r);
+  if(a.device==='phone'){
+    skLine(g,x+w/2-26,y+16,x+w/2+26,y+16,3,W_GREY);
+    skLine(g,x+w/2-42,y+h-12,x+w/2+42,y+h-12,3.4,W_GREY);
+  }else if(a.device==='tablet'){
+    g.beginPath(); g.arc(x+w/2,y+14,4,0,7); g.fillStyle=W_GREY; g.fill();
+  }else{
+    const bh=34; skLine(g,x,y+bh,x+w,y+bh,2);
+    for(let i=0;i<3;i++){ g.beginPath(); g.arc(x+16+i*16,y+bh/2,4,0,7); g.fillStyle=W_GREY; g.fill(); }
+    skRect(g,x+64,y+8,Math.min(w*0.5,320),bh-16,9);
+  }
+  const t=frameTitleRect(a), nm=spec.icon+' '+(((a.label||'').trim())||spec.name);
+  skText(g,nm,t.x+2,t.y+t.h-9,15,W_INK,true);
+  skLine(g,t.x,t.y+t.h-2,t.x+Math.min(t.w,nm.length*9),t.y+t.h-2,2,W_GREY);
+}
+function hitFrame(p){
+  const near=8/view.s;
+  for(let i=annos.length-1;i>=0;i--){
+    const a=annos[i]; if(a.t!=='frame')continue;
+    const t=frameTitleRect(a);
+    if(p.x>=t.x&&p.x<=t.x+t.w&&p.y>=t.y&&p.y<=t.y+t.h)return i;      // name strip grabs
+    const onEdge=(p.x>=a.x-near&&p.x<=a.x+a.w+near&&p.y>=a.y-near&&p.y<=a.y+a.h+near)&&
+      !(p.x>a.x+near&&p.x<a.x+a.w-near&&p.y>a.y+near&&p.y<a.y+a.h-near);
+    if(onEdge)return i;                                               // border only — inside stays free for widgets
+  }
+  return -1;
+}
+function annoCenter(a){
+  if(a.t==='arrow')return {x:(a.x1+a.x2)/2,y:(a.y1+a.y2)/2};
+  if(a.t==='pen'){ let sx=0,sy=0; a.pts.forEach(q=>{sx+=q.x;sy+=q.y;}); const n=a.pts.length||1; return {x:sx/n,y:sy/n}; }
+  if(a.t==='text')return {x:a.x+40,y:a.y-a.size/2};
+  return {x:a.x+(a.w||0)/2,y:a.y+(a.h||0)/2};
+}
+function frameAtPoint(x,y){
+  for(let i=annos.length-1;i>=0;i--){ const f=annos[i];
+    if(f.t==='frame'&&x>=f.x&&x<=f.x+f.w&&y>=f.y&&y<=f.y+f.h)return i; }
+  return -1;
+}
+function frameOf(a){ if(a.t==='frame')return -1; const c=annoCenter(a); return frameAtPoint(c.x,c.y); }
+function frameMembers(fi){
+  const f=annos[fi], m={annos:[],slices:[]};
+  annos.forEach((a,i)=>{ if(i!==fi&&a.t!=='frame'&&frameOf(a)===fi)m.annos.push(i); });
+  slices.forEach((s,i)=>{ const cx=s.x+s.sw/2, cy=s.y+s.sh/2;
+    if(cx>=f.x&&cx<=f.x+f.w&&cy>=f.y&&cy<=f.y+f.h)m.slices.push(i); });
+  return m;
+}
+function mkFrameDrag(fi,p){
+  const f=annos[fi], mem=frameMembers(fi), glue=[];
+  annos.forEach((a,i)=>{ if(a.t!=='arrow'||mem.annos.includes(i))return;
+    const in1=(a.x1>=f.x&&a.x1<=f.x+f.w&&a.y1>=f.y&&a.y1<=f.y+f.h);
+    const in2=(a.x2>=f.x&&a.x2<=f.x+f.w&&a.y2>=f.y&&a.y2<=f.y+f.h);
+    if(in1!==in2)glue.push({i,end:in1?1:2}); });                      // flow arrows stay glued to their screen
+  return {kind:'moveFrame',i:fi,start:p,moved:false,
+    snap:{slices:JSON.parse(JSON.stringify(slices)),annos:JSON.parse(JSON.stringify(annos)),groups:JSON.parse(JSON.stringify(groups))},
+    orig:JSON.parse(JSON.stringify(f)), mem, glue,
+    morig:mem.annos.map(i=>JSON.parse(JSON.stringify(annos[i]))),
+    sorig:mem.slices.map(i=>({x:slices[i].x,y:slices[i].y})),
+    gorig:glue.map(gl=>({x1:annos[gl.i].x1,y1:annos[gl.i].y1,x2:annos[gl.i].x2,y2:annos[gl.i].y2}))};
+}
+/* reply-back v2: dashed thread from an AI mark to the mark it answers (re:"<id>") */
+function drawAIThreads(g){
+  annos.forEach(a=>{
+    if(a.by!=='ai'||!a.re)return;
+    const t=annos.find(z=>z.id===a.re); if(!t||t===a)return;
+    const s=annoCenter(a), e=annoCenter(t);
+    g.save(); g.globalAlpha=0.55; g.strokeStyle=a.c||'#2563eb'; g.lineWidth=lwv(1.6);
+    g.setLineDash([lwv(5),lwv(4)]);
+    g.beginPath(); g.moveTo(s.x,s.y); g.lineTo(e.x,e.y); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.arc(e.x,e.y,lwv(3.5),0,7); g.fillStyle=a.c||'#2563eb'; g.fill();
+    g.restore();
+  });
+}
 /* ================= WIDGET SKETCH DIALECT ================= */
 function skRect(g,x,y,w,h,r){
   // the sketch dialect: double-stroked, slightly offset — hand-drawn, deterministically
@@ -1343,7 +1516,7 @@ function seedMsel(clickKey){
 function selectGroup(i){ if(!groups[i]){clearSel();return;} sel={kind:'group',i}; selected=-1; msel=[]; openEditor(true); }
 function selectPiece(i){ sel={kind:'piece',i}; selected=i; openEditor(true); }
 function selectMark(i){
-  if(i<0||!annos[i]||['box','arrow','text','widget'].indexOf(annos[i].t)<0){ clearSel(); return; }
+  if(i<0||!annos[i]||['box','arrow','text','widget','frame'].indexOf(annos[i].t)<0){ clearSel(); return; }
   sel={kind:'mark',i}; selected=-1; openEditor(true);
 }
 function clearSel(){ sel={kind:null,i:-1}; $('secSel').style.display='none'; }
@@ -1376,8 +1549,8 @@ function syncEditor(){
     return;
   }
   $('selDup').style.display='inline-block'; $('selUngroup').style.display='none';
-  const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):o.t==='text'?'this label':o.t==='widget'?('this '+(WIDGETS[o.kind]?WIDGETS[o.kind].name.toLowerCase():'widget')):'this arrow') : 'this piece';
-  $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):o.t==='text'?'Selected text':o.t==='widget'?('Widget · '+(WIDGETS[o.kind]?WIDGETS[o.kind].name:'')):'Selected arrow') : 'Selected piece';
+  const what = isMark ? (o.t==='box'?(o.fill?'this region':'this box'):o.t==='text'?'this label':o.t==='widget'?('this '+(WIDGETS[o.kind]?WIDGETS[o.kind].name.toLowerCase():'widget')):o.t==='frame'?'this screen':'this arrow') : 'this piece';
+  $('selTitle').textContent = isMark ? (o.t==='box'?(o.fill?'Selected region':'Selected box'):o.t==='text'?'Selected text':o.t==='widget'?('Widget · '+(WIDGETS[o.kind]?WIDGETS[o.kind].name:'')):o.t==='frame'?('Screen · '+((FRAMES[o.device]||{}).name||'Free')+(((o.label||'').trim())?(' “'+o.label+'”'):'')):'Selected arrow') : 'Selected piece';
   if(grouped){
     $('selCapWrap').style.display='none';
     $('selGroupHint').style.display='block';
@@ -1391,11 +1564,13 @@ function syncEditor(){
       $('selCap').placeholder='Edit the label text…';
       $('selSmaller').style.display='inline-block'; $('selBigger').style.display='inline-block';
     }else{
-      $('selCapLabel').textContent = o.t==='widget' ? ('What does '+what+' do?') : ('Note for '+what);
+      $('selCapLabel').textContent = o.t==='widget' ? ('What does '+what+' do?') : o.t==='frame' ? 'What is this screen for?' : ('Note for '+what);
       $('selCap').value=o.cap||'';
-      $('selCap').placeholder = o.t==='widget' ? 'e.g. submits the form to /api/orders — double-click the widget to rename it' : ("What's the issue or change with "+what+"?");
+      $('selCap').placeholder = o.t==='widget' ? 'e.g. submits the form to /api/orders — double-click the widget to rename it'
+        : o.t==='frame' ? 'e.g. where the user lands after login — double-click the name to rename this screen'
+        : ("What's the issue or change with "+what+"?");
     }
-    $('markColors').style.display=(isMark&&o.t!=='widget')?'flex':'none';
+    $('markColors').style.display=(isMark&&o.t!=='widget'&&o.t!=='frame')?'flex':'none';
     if(isMark){ [...$('markColors').children].forEach(b=>b.classList.toggle('on',b.dataset.c===o.c)); }
   }
   if(isGroup){
@@ -1470,7 +1645,8 @@ $('selDup').onclick=()=>{
   const o=selObj(); if(!o)return;
   if(sel.kind==='piece'){ slices.push({...o,x:o.x+28,y:o.y+28}); undoStack.push({k:'slice'}); selectPiece(slices.length-1); }
   else { const c=JSON.parse(JSON.stringify(o));
-    if(c.t==='box'||c.t==='text'||c.t==='widget'){c.x+=24;c.y+=24;} else {c.x1+=24;c.y1+=24;c.x2+=24;c.y2+=24;}
+    delete c.id;   // a copy is a new mark — never share an id with the original
+    if(c.t==='box'||c.t==='text'||c.t==='widget'||c.t==='frame'){c.x+=24;c.y+=24;} else {c.x1+=24;c.y1+=24;c.x2+=24;c.y2+=24;}
     annos.push(c); undoStack.push({k:'anno'}); selectMark(annos.length-1); }
   sync();
 };
@@ -1486,22 +1662,23 @@ $('selDel').onclick=()=>{
 /* ---------------- text tool ---------------- */
 const textEntry=$('textEntry');
 function openText(e,p,idx){
-  const editing = typeof idx==='number' && idx>=0 && annos[idx] && (annos[idx].t==='text'||annos[idx].t==='widget');
+  const editing = typeof idx==='number' && idx>=0 && annos[idx] && (annos[idx].t==='text'||annos[idx].t==='widget'||annos[idx].t==='frame');
   const a = editing ? annos[idx] : null;
   pendingText = editing ? null : p;
   editIdx = editing ? idx : -1;
-  const fs=((a? (a.t==='widget'?15:a.size) : textSize()))*view.s;
-  const col=a?a.c:color;
+  const fs=((a? ((a.t==='widget'||a.t==='frame')?15:a.size) : textSize()))*view.s;
+  const col=(a&&a.c)?a.c:(a&&a.t==='frame')?'#2e2d27':a?a.c:color;
   const r=stage.getBoundingClientRect();
   let sx, sy;
-  if(a){ sx=a.x*view.s+view.x+(a.t==='widget'?10*view.s:0); sy=(a.t==='widget'?(a.y+a.h/2+7)*view.s+view.y:a.y*view.s+view.y); }
+  if(a&&a.t==='frame'){ const tr=frameTitleRect(a); sx=(tr.x+2)*view.s+view.x; sy=(tr.y+tr.h/2+2)*view.s+view.y; }
+  else if(a){ sx=a.x*view.s+view.x+(a.t==='widget'?10*view.s:0); sy=(a.t==='widget'?(a.y+a.h/2+7)*view.s+view.y:a.y*view.s+view.y); }
   else { sx=e.clientX-r.left; sy=e.clientY-r.top; }
   textEntry.style.left=(sx-8)+'px';
   textEntry.style.top=(sy-fs*1.08)+'px';
   textEntry.style.fontSize=fs+'px';
   textEntry.style.color=col;
   textEntry.style.borderColor=col;
-  textEntry.value=a?((a.t==='widget'?a.label:a.text)||''):'';
+  textEntry.value=a?(((a.t==='widget'||a.t==='frame')?a.label:a.text)||''):'';
   textEntry.size=Math.max(6,textEntry.value.length+2);
   textEntry.style.display='block';
   setTimeout(()=>{ textEntry.focus(); if(a)textEntry.select(); },0);
@@ -1512,7 +1689,7 @@ function commitTextEntry(fromBlur){
   if(editIdx>=0){
     const a=annos[editIdx];
     if(a){
-      if(a.t==='widget'){
+      if(a.t==='widget'||a.t==='frame'){
         undoStack.push({k:'markedit',i:editIdx,prev:{...a}});
         a.label=v; const i=editIdx; cancelText(); selectMark(i); sync(); return;
       }
@@ -1610,8 +1787,8 @@ if(store.ok){
     }catch(e){}
   });
 }
-const SECS=['secNotes','secSel','secPieces','secSnap','secBm','secLog','secWidgets','secRecent'];
-const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secWidgets:'R',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
+const SECS=['secNotes','secSel','secPieces','secSnap','secBm','secLog','secWidgets','secRails','secRecent'];
+const DEFAULT_SIDE={secSel:'L',secNotes:'L',secPieces:'L',secWidgets:'R',secRails:'R',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
 function applyLayout(){
   let map={...DEFAULT_SIDE};
   if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
@@ -1740,7 +1917,10 @@ function downloadBlob(blob,name){
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 /* ================= SAVE / LOAD ================= */
+let nextMid=1;
+function ensureIds(){ annos.forEach(a=>{ if(!a.id)a.id='m'+(nextMid++); }); }
 function serialize(){
+  ensureIds();   // every mark ships with a stable id — AIs reply-back with re:"<id>"
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
     project:$('projectName').value,notes:$('notes').value,pageURL:$('pageURL').value.trim(),savedAt:new Date().toISOString(),
     images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups,contextLog,attachments};
@@ -1754,6 +1934,8 @@ function applyState(d){
   }))).then(arr=>{
     images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[]; contextLog=d.contextLog||[]; attachments=d.attachments||[];
     nextGid=groups.reduce((m,g)=>Math.max(m,g.id+1),1); msel=[];
+    nextMid=annos.reduce((m,a)=>{ const mt=(typeof a.id==='string')&&a.id.match(/^m(\d+)$/); return mt?Math.max(m,+mt[1]+1):m; },1);
+    frameSeq=annos.filter(a=>a.t==='frame').length+1;
     $('projectName').value=d.project||''; $('notes').value=d.notes||''; $('pageURL').value=d.pageURL||'';
     undoStack=[]; selected=-1;
     $('dropHint').style.display=images.length?'none':'flex';
@@ -1770,7 +1952,11 @@ $('jsonInput').onchange=e=>{if(e.target.files[0])loadJSONFile(e.target.files[0])
 function loadJSONFile(file){
   const rd=new FileReader();
   rd.onload=()=>{
-    try{ applyState(JSON.parse(rd.result)); toast('Project loaded'); }
+    try{
+      const d=JSON.parse(rd.result);
+      if(d&&d.app==='mockurator-template'){ insertTemplate(d); return; }   // packs insert, boards replace
+      applyState(d); toast('Project loaded');
+    }
     catch(e){ toast('That file is not a MockuRATOR JSON'); }
   };
   rd.readAsText(file);
@@ -1822,8 +2008,10 @@ function renderBoard(cb){
     g.drawImage(im.img,s.sx,s.sy,s.sw,s.sh,s.x,s.y,s.sw,s.sh);
     g.strokeStyle='#d0cdc2'; g.lineWidth=1; g.strokeRect(s.x,s.y,s.sw,s.sh);
   });
-  annos.forEach(a=>drawAnno(g,a));
+  annos.forEach(a=>{ if(a.t==='frame')drawAnno(g,a); });
+  annos.forEach(a=>{ if(a.t!=='frame')drawAnno(g,a); });
   drawGroupCaps(g);
+  drawAIThreads(g);
   g.restore();
   if(noteLines.length){
     g.fillStyle='#33322b'; g.font=`400 ${noteSize}px ui-sans-serif,system-ui,sans-serif`;
@@ -1854,8 +2042,83 @@ $('btnExport').onclick=()=>{
 function colorName(hex){
   return {'#e0342b':'red','#f59e0b':'orange','#2563eb':'blue','#16a34a':'green','#111827':'black'}[hex]||hex;
 }
+/* ================= GUIDE RAILS (UX conscience engine) =================
+   Rails nudge live in the panel and ride the report as the export conscience.
+   Each rail toggles on its own; the master switch silences the lot — panel AND report. */
+function relLum(hex){
+  const n=parseInt(String(hex).replace('#',''),16);
+  const f=v=>{ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); };
+  return 0.2126*f((n>>16)&255)+0.7152*f((n>>8)&255)+0.0722*f(n&255);
+}
+function contrastOnWhite(hex){ try{ return 1.05/(relLum(hex)+0.05); }catch(e){ return 21; } }
+function screenName(fi){
+  const f=annos[fi]; if(!f)return 'the board';
+  return '“'+(((f.label||'').trim())||((FRAMES[f.device]||{}).name||'Screen'))+'”';
+}
+const RAILS=[
+  {id:'primary', name:'One primary action per screen', run(){
+    const out=[], per={};
+    annos.forEach(a=>{ if(a.t!=='widget'||a.kind!=='button')return;
+      const fi=frameOf(a); (per[fi]=per[fi]||[]).push(a); });
+    Object.keys(per).forEach(k=>{ const n=per[k].length;
+      if(n>1)out.push((+k<0?'The board':'Screen '+screenName(+k))+' has '+n+' buttons — pick one primary action; demote the rest to links.'); });
+    return out; }},
+  {id:'target', name:'Tap targets ≥ 36px', run(){
+    const small=annos.filter(a=>a.t==='widget'&&['button','input','select','search','toggle','checkbox','radio'].includes(a.kind)&&a.h<36).length;
+    return small?[small+' interactive widget'+(small>1?'s are':' is')+' under 36px tall — thumbs will miss.']:[]; }},
+  {id:'contrast', name:'Label contrast on the white export', run(){
+    const weak=annos.filter(a=>a.t==='text'&&a.c&&contrastOnWhite(a.c)<3).length;
+    const weakCaps=annos.filter(a=>(a.t==='box'||a.t==='arrow')&&a.cap&&!a.g&&a.c&&contrastOnWhite(a.c)<3).length;
+    const out=[];
+    if(weak)out.push(weak+' text label'+(weak>1?'s':'')+' in a colour that reads faint on the white export (contrast under 3:1) — orange is the usual culprit.');
+    if(weakCaps)out.push(weakCaps+' caption pill'+(weakCaps>1?'s':'')+' in a low-contrast colour — red, blue, or black carry further.');
+    return out; }},
+  {id:'label', name:'Widgets carry labels', run(){
+    const n=annos.filter(a=>a.t==='widget'&&!(a.label||'').trim()&&!['text','image','table'].includes(a.kind)).length;
+    return n?[n+' widget'+(n>1?'s':'')+' unlabeled — the builder won\u2019t know what to write on them.']:[]; }},
+  {id:'note', name:'Widgets say what they do', run(){
+    const n=annos.filter(a=>a.t==='widget'&&!a.cap&&!a.g).length;
+    return n?[n+' widget'+(n>1?'s':'')+' missing a behaviour note — a spec can\u2019t build what it can\u2019t read.']:[]; }}
+];
+let railState={on:true,off:[]};
+try{ const s=JSON.parse(localStorage.getItem('mockurator:rails')); if(s)railState={on:s.on!==false,off:Array.isArray(s.off)?s.off:[]}; }catch(e){}
+function saveRails(){ try{ localStorage.setItem('mockurator:rails',JSON.stringify(railState)); }catch(e){} }
+function railsEnabled(){ return railState.on ? RAILS.filter(r=>!railState.off.includes(r.id)) : []; }
+function railFindings(){
+  const out=[];
+  railsEnabled().forEach(r=>{ try{ r.run().forEach(f=>out.push(f)); }catch(e){} });
+  return out;
+}
+function refreshRails(){
+  const list=$('railList'), finds=$('railFinds'); if(!list||!finds)return;
+  $('railsMaster').checked=railState.on;
+  if(!list.dataset.built){
+    list.dataset.built='1';
+    RAILS.forEach(r=>{
+      const lb=document.createElement('label'); lb.className='railTip small';
+      lb.style.cssText='display:flex;gap:6px;align-items:center;cursor:pointer';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.dataset.rail=r.id;
+      cb.onchange=()=>{
+        railState.off=railState.off.filter(x=>x!==r.id);
+        if(!cb.checked)railState.off.push(r.id);
+        saveRails(); refreshRails();
+      };
+      lb.append(cb,document.createTextNode(' '+r.name));
+      list.appendChild(lb);
+    });
+  }
+  list.querySelectorAll('input[data-rail]').forEach(cb=>{ cb.checked=!railState.off.includes(cb.dataset.rail); cb.disabled=!railState.on; });
+  finds.innerHTML='';
+  const f=railState.on?railFindings():[];
+  if(f.length)f.forEach(x=>{ const d=document.createElement('div'); d.className='railTip small'; d.textContent='⚠ '+x; finds.appendChild(d); });
+  else { const d=document.createElement('div'); d.className='railTip small';
+    d.textContent=railState.on?'✓ No nudges — the conscience is clear.':'Rails off — the report skips the conscience too.';
+    finds.appendChild(d); }
+}
+$('railsMaster').onchange=()=>{ railState.on=$('railsMaster').checked; saveRails(); refreshRails(); };
 /* ================= REPORT ================= */
 function buildReport(){
+  ensureIds();
   const title=$('projectName').value.trim()||'Untitled';
   const notes=$('notes').value.trim();
   const L=[];
@@ -1902,25 +2165,76 @@ function buildReport(){
     });
     L.push('');
   }
+
+  /* --- Screens & components / wireframe build spec --- */
   const widg=annos.filter(a=>a.t==='widget');
-  if(widg.length){
+  const frameIdxs=annos.map((a,i)=>a.t==='frame'?i:-1).filter(i=>i>=0);
+  if(widg.length||frameIdxs.length){
     L.push('## Screens & components (build spec)');
     L.push('');
-    widg.forEach((a,ix)=>{
+    const wline=(a,ox,oy)=>{
       const nm=(WIDGETS[a.kind]?WIDGETS[a.kind].name:a.kind);
       const lab=(a.label||'').trim();
-      let line='- **'+nm+'**'+(lab?(' “'+lab+'”'):'')+' — '+Math.round(a.w)+'×'+Math.round(a.h)+' @ ('+Math.round(a.x)+','+Math.round(a.y)+')';
-      line += a.cap?(': '+a.cap):' — (no behaviour note)';
-      L.push(line);
-    });
-    const unl=widg.filter(a=>!(a.label||'').trim()&&!['text','image','table'].includes(a.kind)).length;
-    const unn=widg.filter(a=>!a.cap).length;
-    if(unl||unn){
+      let ln='- **'+nm+'**'+(lab?(' “'+lab+'”'):'')+' — '+Math.round(a.w)+'×'+Math.round(a.h)+' @ ('+Math.round(a.x-ox)+','+Math.round(a.y-oy)+')';
+      ln+=a.cap?(': '+a.cap):' — (no behaviour note)';
+      return ln;
+    };
+    if(frameIdxs.length){
+      frameIdxs.forEach(fi=>{
+        const f=annos[fi];
+        const spec=FRAMES[f.device]||{name:'Screen',icon:'▭'};
+        const lab=(f.label||'').trim()||spec.name;
+        L.push('### '+spec.icon+' '+lab+' — '+spec.name.toLowerCase()+' · '+Math.round(f.w)+'×'+Math.round(f.h));
+        L.push('');
+        if(f.cap)L.push('_'+f.cap+'_');
+        const mems=frameMembers(fi).annos.map(i=>annos[i]).filter(a=>a.t==='widget');
+        if(mems.length){
+          L.push('_Coordinates relative to screen top-left._');
+          mems.forEach(a=>L.push(wline(a,f.x,f.y)));
+        } else {
+          L.push('_No widgets placed inside this screen yet._');
+        }
+        L.push('');
+      });
+      const backstage=widg.filter(a=>frameOf(a)<0);
+      if(backstage.length){
+        L.push('### Backstage — widgets not inside a screen frame');
+        L.push('');
+        backstage.forEach(a=>L.push(wline(a,0,0)));
+        L.push('');
+      }
+    } else {
+      /* flat path: no frames, list widgets directly */
+      widg.forEach(a=>L.push(wline(a,0,0)));
       L.push('');
-      L.push('**UX notes for the builder:** '+[unl?unl+' widget(s) unlabeled':'',unn?unn+' widget(s) missing a behaviour note':''].filter(Boolean).join(' · ')+'. Resolve before shipping.');
     }
+    /* UX conscience from guide rails */
+    const conscience=railFindings();
+    if(conscience.length){
+      L.push('**UX notes for the builder (guide rails):**');
+      conscience.forEach(f=>L.push('- '+f));
+      L.push('');
+    }
+  }
+
+  /* --- User flows (cross-screen arrows) --- */
+  const crossArrows=annos.filter(a=>a.t==='arrow'&&!a.g&&(()=>{
+    const fi1=frameAtPoint(a.x1,a.y1), fi2=frameAtPoint(a.x2,a.y2);
+    return fi1>=0&&fi2>=0&&fi1!==fi2;
+  })());
+  if(crossArrows.length){
+    L.push('## User flows');
+    L.push('');
+    crossArrows.forEach(a=>{
+      const sn1=screenName(frameAtPoint(a.x1,a.y1));
+      const sn2=screenName(frameAtPoint(a.x2,a.y2));
+      const col=colorName(a.c);
+      const cap=a.cap?(' — '+a.cap):'';
+      L.push('- '+sn1+' → '+sn2+(col!=='black'?' ('+col+')':'')+cap);
+    });
     L.push('');
   }
+
   L.push('## Marks');
   L.push('');
   let n=0, hadCaption=false;
@@ -1928,13 +2242,20 @@ function buildReport(){
   const geoOf=a=>a.t==='box'
     ? ('~'+Math.round(a.w)+'×'+Math.round(a.h)+' @ ('+Math.round(a.x)+','+Math.round(a.y)+')')
     : ('('+Math.round(a.x1)+','+Math.round(a.y1)+')→('+Math.round(a.x2)+','+Math.round(a.y2)+')');
+  /* resolve re: back-reference for reply marks */
+  const byId={}; annos.forEach(a=>{ if(a.id)byId[a.id]=a; });
   annos.forEach(a=>{
     if((a.t==='box'||a.t==='arrow')&&!a.g){
       n++;
       const kind=(a.by==='ai'?'AI reply — ':'')+(a.t==='box'?(a.fill?'Filled region':'Box'):'Arrow');
       const col=colorName(a.c);
-      if(a.cap){ hadCaption=true; L.push('- '+tagOf(a)+'**'+kind+' '+n+'** ('+col+', '+geoOf(a)+'): '+a.cap); }
-      else L.push('- '+tagOf(a)+kind+' '+n+' ('+col+', '+geoOf(a)+') — no caption');
+      const idTag=a.id?(' · id: '+a.id):'';
+      if(a.cap){ hadCaption=true; L.push('- '+tagOf(a)+'**'+kind+' '+n+'** ('+col+', '+geoOf(a)+'): '+a.cap+idTag); }
+      else L.push('- '+tagOf(a)+kind+' '+n+' ('+col+', '+geoOf(a)+') — no caption'+idTag);
+      if(a.re&&byId[a.re]){
+        const tgt=byId[a.re];
+        L.push('  ↳ replying to '+a.re+(tgt.cap?' — "'+tgt.cap+'"':''));
+      }
     }
   });
   const freeText=annos.filter(a=>a.t==='text').map(a=>a.text);
@@ -2210,8 +2531,18 @@ try{ if(localStorage.getItem('mockurator:wfmode')==='1')setWfMode(true,false); }
   });
   window.refreshChips=function(){
     [...wrap.children].forEach(b=>b.classList.toggle('on',tool==='widget'&&b.dataset.k===pendingKind));
+    document.querySelectorAll('#framechips [data-f]').forEach(b=>b.classList.toggle('on',tool==='widget'&&pendingKind==='frame:'+b.dataset.f));
   };
 })();
+document.querySelectorAll('#framechips [data-f]').forEach(b=>{
+  b.classList.add('wchip');
+  b.onclick=()=>{
+    const k='frame:'+b.dataset.f;
+    if(pendingKind===k&&tool==='widget'){ pendingKind=null; setTool('move'); refreshChips(); return; }
+    pendingKind=k; setTool('widget'); refreshChips();
+    toast('Click the canvas to place a '+FRAMES[b.dataset.f].name.toLowerCase()+' screen — or drag your own size. Widgets inside belong to it.');
+  };
+});
 const PRESETS={
   login:[['heading',0,0,260,38,'Welcome back'],['input',0,64,260,44,'Email'],['input',0,122,260,44,'Password'],
     ['checkbox',0,182,180,28,'Remember me'],['button',0,226,260,46,'Log in'],['link',0,290,150,26,'Forgot password?']],
@@ -2236,6 +2567,119 @@ function loadPreset(name){
 $('presetLogin').onclick=()=>loadPreset('login');
 $('presetDash').onclick=()=>loadPreset('dash');
 $('presetSettings').onclick=()=>loadPreset('settings');
+
+/* ---------------- template packs (droppable JSONs) ----------------
+   Format: {app:'mockurator-template', v:1, name, items:[frame|widget|arrow|box|pen|text …]}
+   with coordinates relative to (0,0). Dropping such a file on the canvas INSERTS the pack
+   at a free spot instead of replacing the board — packs are shareable satellite files.
+   The built-in packs below run through the exact same pipeline. */
+function freeSpot(){
+  let ox=60;
+  images.forEach(im=>ox=Math.max(ox,im.x+im.w+80));
+  annos.forEach(a=>{ if(a.t==='widget'||a.t==='frame')ox=Math.max(ox,a.x+(a.w||0)+120); });
+  return {ox:snapv(ox),oy:60};
+}
+function insertTemplate(t){
+  if(!t||!Array.isArray(t.items)||!t.items.length){ toast('That template has no items in it.'); return; }
+  const {ox,oy}=freeSpot();
+  boardSnap();
+  const added=[];
+  t.items.forEach(it=>{
+    const c=JSON.parse(JSON.stringify(it)); delete c.id; delete c.g;
+    if(!['frame','widget','box','arrow','pen','text'].includes(c.t))return;
+    if(c.t==='widget'&&!WIDGETS[c.kind])return;
+    if(c.t==='frame'&&!FRAMES[c.device])c.device='desktop';
+    if(c.t==='arrow'){ c.x1=(c.x1||0)+ox;c.y1=(c.y1||0)+oy;c.x2=(c.x2||0)+ox;c.y2=(c.y2||0)+oy; c.c=c.c||'#2563eb'; c.lw=c.lw||3; }
+    else if(c.t==='pen'){ c.pts=(c.pts||[]).map(q=>({x:q.x+ox,y:q.y+oy})); c.c=c.c||'#111827'; c.lw=c.lw||3; }
+    else { c.x=(c.x||0)+ox; c.y=(c.y||0)+oy;
+      if(c.t==='text'){c.c=c.c||'#111827';c.size=c.size||20;}
+      if(c.t==='box'){c.c=c.c||'#e0342b';c.lw=c.lw||3;} }
+    added.push(c);
+  });
+  if(!added.length){ toast('Nothing in that template that MockuRATOR understands.'); return; }
+  added.filter(c=>c.t==='frame').forEach(c=>annos.push(c));
+  added.filter(c=>c.t!=='frame').forEach(c=>annos.push(c));
+  frameSeq=annos.filter(a=>a.t==='frame').length+1;
+  $('dropHint').style.display='none';
+  clearSel(); sync(); fitView();
+  toast('“'+(t.name||'Template')+'” placed — '+added.length+' items in. Undo takes the whole pack back.');
+}
+const TEMPLATES=(()=>{
+  const F=(dev,label,x,cap)=>{ const o={t:'frame',device:dev,label,x,y:0,w:FRAMES[dev].w,h:FRAMES[dev].h}; if(cap)o.cap=cap; return o; };
+  const W=(kind,x,y,w,h,label,cap)=>{ const o={t:'widget',kind,x,y,w,h,label:label||''}; if(cap)o.cap=cap; return o; };
+  const A=(x1,y1,x2,y2,cap)=>({t:'arrow',x1,y1,x2,y2,c:'#2563eb',lw:3,cap});
+  const auth={app:'mockurator-template',v:1,name:'Auth trio',items:[
+    F('phone','Login',0,'entry point for returning users'),
+    W('heading',45,120,300,38,'Welcome back'),
+    W('input',45,190,300,44,'Email'),W('input',45,248,300,44,'Password'),
+    W('checkbox',45,308,220,28,'Remember me'),
+    W('button',45,352,300,48,'Log in','primary — submits credentials'),
+    W('link',45,420,180,26,'Forgot password?'),W('link',45,456,180,26,'Create account'),
+    F('phone','Register',470,'new account signup'),
+    W('heading',515,120,300,38,'Create account'),
+    W('input',515,190,300,44,'Name'),W('input',515,248,300,44,'Email'),W('input',515,306,300,44,'Password'),
+    W('button',515,366,300,48,'Sign up','primary — creates the account'),
+    W('link',515,432,180,26,'Back to log in'),
+    F('phone','Forgot password',940,'self-service reset'),
+    W('heading',985,120,300,38,'Reset password'),
+    W('text',985,180,300,56),
+    W('input',985,260,300,44,'Email'),
+    W('button',985,320,300,48,'Send reset link','emails a one-time reset link'),
+    W('link',985,386,180,26,'Back to log in'),
+    A(350,468,505,468,'create account'),
+    A(350,430,975,430,'forgot password?')
+  ]};
+  const saas={app:'mockurator-template',v:1,name:'SaaS shell',items:[
+    F('desktop','App shell',0,'the signed-in workspace'),
+    W('navbar',16,50,1248,54,'Brand'),
+    W('heading',40,140,300,38,'Dashboard'),
+    W('button',1060,138,180,44,'New report','primary action of this screen'),
+    W('card',40,200,300,210,'Revenue'),W('card',380,200,300,210,'Orders'),W('card',720,200,300,210,'Clients'),
+    W('table',40,440,980,220)
+  ]};
+  const shop={app:'mockurator-template',v:1,name:'Shop ×4',items:[
+    F('phone','Products',0,'browse the catalogue'),
+    W('heading',45,110,200,36,'Shop'),W('search',45,160,300,44,'Search products…'),
+    W('card',45,224,300,210,'Product'),W('card',45,454,300,210,'Product'),
+    F('phone','Product',470,'a single item'),
+    W('image',515,120,300,210),
+    W('heading',515,350,300,34,'Product name'),W('text',515,394,300,56),
+    W('badge',515,470,110,30,'R 499'),
+    W('button',515,520,300,48,'Add to cart','primary — adds the item to the cart'),
+    F('phone','Cart',940,'review before paying'),
+    W('heading',985,110,200,36,'Cart'),
+    W('table',985,160,300,260),
+    W('button',985,450,300,48,'Checkout','goes to checkout'),
+    F('phone','Checkout',1410,'payment + delivery'),
+    W('heading',1455,110,240,36,'Checkout'),
+    W('input',1455,170,300,44,'Name'),W('input',1455,228,300,44,'Address'),W('input',1455,286,300,44,'Card number'),
+    W('button',1455,350,300,48,'Pay now','primary — submits payment'),
+    A(350,330,505,330,'tap a product'),
+    A(820,544,975,544,'added → view cart'),
+    A(1290,474,1445,474,'checkout')
+  ]};
+  const landing={app:'mockurator-template',v:1,name:'Landing page',items:[
+    F('desktop','Landing',0,'the public front door'),
+    W('navbar',16,50,1248,54,'Brand'),
+    W('heading',60,160,520,48,'Big promise headline'),
+    W('text',60,230,460,88),
+    W('button',60,350,220,52,'Get started','primary CTA — goes to signup'),
+    W('image',660,150,560,320),
+    W('text',60,540,1160,66)
+  ]};
+  const pricing={app:'mockurator-template',v:1,name:'Pricing',items:[
+    F('desktop','Pricing',0,'plans compared side by side'),
+    W('heading',40,110,300,40,'Pricing'),
+    W('badge',600,170,120,30,'Popular'),
+    W('card',80,210,340,330,'Starter'),W('card',490,210,340,330,'Pro'),W('card',900,210,340,330,'Team')
+  ]};
+  return {auth,saas,shop,landing,pricing};
+})();
+$('tplAuth').onclick=()=>insertTemplate(TEMPLATES.auth);
+$('tplSaas').onclick=()=>insertTemplate(TEMPLATES.saas);
+$('tplShop').onclick=()=>insertTemplate(TEMPLATES.shop);
+$('tplLanding').onclick=()=>insertTemplate(TEMPLATES.landing);
+$('tplPricing').onclick=()=>insertTemplate(TEMPLATES.pricing);
 
 /* ---------------- colour themes ---------------- */
 const THEMES=[
@@ -2277,7 +2721,7 @@ toolModal.addEventListener('click',e=>{ if(e.target===toolModal)toolModal.style.
 
 /* ---------------- AI hand-off prompts ---------------- */
 const AI_PROMPTS={
-  pkg:"I'm attaching a MockuRATOR package (a zip). Read report.md first — every mark and issue is explained there, with context about where each screenshot came from. Then study board.png. Address each issue one by one and tell me exactly what you changed, per issue. Captions may contain typos — normalize spelling silently when quoting them. You may also annotate BACK: edit board.json by appending reply marks to the annos array, e.g. {\"t\":\"box\",\"x\":100,\"y\":100,\"w\":200,\"h\":80,\"c\":\"#2563eb\",\"lw\":4,\"cap\":\"your reply here\",\"by\":\"ai\"} (arrows/text work too), and return the edited board.json — the human reloads it and your marks appear labeled AI.",
+  pkg:"I'm attaching a MockuRATOR package (a zip). Read report.md first — every mark and issue is explained there, with context about where each screenshot came from. Then study board.png. Address each issue one by one and tell me exactly what you changed, per issue. Captions may contain typos — normalize spelling silently when quoting them. You may also annotate BACK: edit board.json by appending reply marks to the annos array, e.g. {\"t\":\"box\",\"x\":100,\"y\":100,\"w\":200,\"h\":80,\"c\":\"#2563eb\",\"lw\":4,\"cap\":\"your reply here\",\"by\":\"ai\"} (arrows/text work too). Every existing mark carries a stable \"id\" field (e.g. \"m3\") — add \"re\":\"m3\" to your reply mark to draw a thread connector from it to the original mark. Return the edited board.json — the human reloads it and your marks appear labeled AI with thread lines connecting replies to their targets.",
   log:"Attached is a MockuLog capture — a .txt telemetry log with timestamped ERROR / EXCEPTION / REJECTION / HTTP / XHR entries. First confirm that's what you received: if I've accidentally attached mockulog.js (the recorder script itself) or anything else, stop and tell me — don't analyze the wrong file. If it's the real log: list every distinct error, its likely root cause, and the exact fix — ordered by severity. Ignore warnings unless they explain an error. If the log says the page ran clean, say so plainly.",
   install:"Add MockuLog — a dev-only console/network recorder — to my app. The script is at https://pierrehunt.github.io/MockuRATOR/mockulog.js (or attached). Vendor a copy into the project (e.g. wwwroot/js/mockulog.js for ASP.NET, or next to index.html), and load it ONLY in development: for ASP.NET wrap the script tag in <environment include=\"Development\">; for plain HTML, guard on location.hostname === 'localhost'. Do not modify the recorder file itself. Tell me exactly which files you changed.",
   both:"This zip holds my annotated screenshot (board.png), my notes (report.md), and a console log. Cross-reference them: which of the visual issues I marked are explained by errors in the log? Then fix each, telling me what you changed."
@@ -2312,7 +2756,11 @@ const TIPS=[
   'Glasses? Long nights? Click the <b>🎨</b> in the header to cycle themes — High contrast, Dark, and Katana. Your exports stay light and readable either way.',
   'The <b>🧰 Companion</b> extension (in the panel) puts Snap, Grab, and MockuLog on a right-click — full pages, single elements, and console recording, even on CSP-locked sites.',
   '<b>Ctrl+D</b> duplicates the selected piece — perfect for before/after mockups. Move the copy where the change should go.',
-  'Press <b>?</b> any time for the full shortcut list — including everything on this tour.'
+  'Press <b>?</b> any time for the full shortcut list — including everything on this tour.',
+  '<b>Screen frames</b> are live containers: drag a Phone, Tablet, or Desktop chip onto the canvas, then drop widgets inside — they move together and the report writes per-screen build specs automatically.',
+  '<b>Starter layouts</b> drop a whole screen in one click — Login, Dashboard, Shop. They land offset from whatever is already on the board, ready to connect with flow arrows.',
+  '<b>Guide rails</b> (in the Items panel) run a live UX conscience: tap targets too small? Duplicate primary buttons? Labels missing? Fix them before the export so the AI spec is clean.',
+  'AI replied with marks in board.json? Add a <b>"re":"m3"</b> field to any reply mark and MockuRATOR draws a thread connector back to the original — conversations on the canvas.'
 ];
 let tipI=0, tipTimer=null;
 function showTip(i){

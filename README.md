@@ -1,6 +1,6 @@
 <p align="center"><img src="mockurator-logo.png" width="620" alt="MockuRATOR — Slice it. Mark it. Send it."></p>
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-13%20suites%20green-2ea44f)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-17%20suites%20green-2ea44f)
 
 # MockuRATOR
 **Slice it. Mark it. Send it.** · [Use it now](https://pierrehunt.github.io/MockuRATOR/) — one HTML file, no install, no account, MIT.
@@ -102,6 +102,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.25.0** — Four threads shipped in one release: **Device frames** (📱 Phone · 📲 Tablet · 🖥️ Desktop screen containers — place from chip or drag; widgets inside move with the screen; rename by double-clicking the name strip; report writes per-screen sections with relative coords and a Backstage catch-all); **Template packs** (five built-in multi-screen starters — Auth ×3, SaaS shell, Shop ×4, Landing, Pricing — plus a droppable `mockurator-template` JSON format so teams can share packs as plain files); **Guide-rail engine** (five toggleable UX-conscience checks — one primary action per screen, tap targets ≥ 36 px, label contrast, unlabeled widgets, missing behaviour notes — live in the panel, written into the report export); **Reply-back v2** (every mark ships with a stable `id`; AI reply marks add `"re":"<id>"` and MockuRATOR draws a dashed thread connector back to the original; the report lists `↳ replying to` thread lines); plus 17 test suites all green
 - **1.24.1** — Infrastructure release: the full test battery (13 suites, 150+ checks) now lives in `tests/` — `node tests/run.js` runs everything with a syntax smoke first; suites read the app version from source so stale-version fake-FAILs are extinct; section banners in index.html; ARCHITECTURE.md and DEMO-SCRIPT.md added; README repositioned around what nothing else does
 - **1.24.0** — MockuFRAME breathes: the wireframe side gets its name (wordmark swaps in mode), marquee group-select (drag empty canvas in Move), eight alignment tools (align edges/centers + distribute with equal gaps), and 👁 Device Preview — the board in desktop, tablet, and phone frames at true relative scale
 - **1.23.0** — The consumer´s five notches (review by the receiving AI): caption pills wrap and never truncate in exports; report.md carries exact geometry for every mark and Issue region; type + severity tags (bug/enhancement/question/praise · low→critical); Page URL field maps screenshots to routes; and the AI reply-back convention — an AI can append its own marks to board.json (by:"ai") and you reload the conversation onto the board
@@ -134,6 +135,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 - **1.5.2** — Lightweight social-preview card (messengers reject large preview images)
 - **1.5.1** — Credits: built with Anthropic's Claude; logo artwork by ChatGPT
 - **1.5.0** — Brand identity (logo, icon, favicon), version stamped on exported PNGs and saved JSONs, semantic versioning in the header
+- **1.0–1.4** — The founding week-end: slice/move/pan tools, box/arrow/pen marks, five colours, Export PNG, Save/Load JSON, panels, first Export Package
 - **1.1–1.4** — Side panel: docked notes, pieces list with thumbnails, capture bookmarklet, autosave and recent boards; movable, resizable panels
 - **1.0** — First release
 
