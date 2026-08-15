@@ -142,6 +142,21 @@ ok('image selection sticks after pointerup',w.eval("selectedImg===0"));
 pt('pointerdown',550,100);pt('pointerup',550,100);
 ok('re-selecting the other image also sticks',w.eval("selectedImg===1"));
 
+/* --- 12. image z-order with slice index remap (v1.28.3) --- */
+w.eval(`
+  images=[
+    {img:{},dataURL:'a',x:0,y:0,w:300,h:200},
+    {img:{},dataURL:'b',x:100,y:50,w:300,h:200}
+  ];
+  slices=[{im:0,sx:10,sy:10,sw:50,sh:40,x:500,y:500},{im:1,sx:5,sy:5,sw:30,sh:20,x:600,y:600}];
+  selectedImg=0; sel={kind:null,i:-1};
+  reorderSel(true);
+`);
+ok('image brought to front moves to end of array',w.eval("images[1].dataURL==='a'&&selectedImg===1"));
+ok('slice indices remap after reorder',w.eval("slices[0].im===1&&slices[1].im===0"));
+w.eval("undo();");
+ok('undo restores image order and slice refs',w.eval("images[0].dataURL==='a'&&slices[0].im===0&&slices[1].im===1"));
+
 console.log(out.join('\n'));
 if(errs.length)console.log('\nERRORS:\n'+errs.slice(0,3).join('\n'));
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL FRAME TESTS PASSED':'FAILED');

@@ -47,6 +47,39 @@ html[data-theme="dark"] .piece, html[data-theme="katana"] .piece{
 html[data-theme="dark"] #toolModal .toolCard, html[data-theme="katana"] #toolModal .toolCard{
   background:var(--paper); color:var(--ink2);
 }
+/* ── dark themes: floating panels + modals stay LIGHT paper cards on the dark desk.
+   Re-scoping the vars flips every var-based child (inputs, .mini, .piece) back to light. ── */
+html[data-theme="dark"] .floatPanel, html[data-theme="dark"] #secSel,
+html[data-theme="dark"] #ctxMenu, html[data-theme="dark"] #startCard, html[data-theme="dark"] #conscienceCard,
+html[data-theme="katana"] .floatPanel, html[data-theme="katana"] #secSel,
+html[data-theme="katana"] #ctxMenu, html[data-theme="katana"] #startCard, html[data-theme="katana"] #conscienceCard{
+  --ink:#26241f; --ink2:#3c3a33; --muted:#6f6c60; --line:#d9d5c7; --white:#ffffff;
+  --paper:#f7f5ec; --accent:#0f6e56;
+  background:#f7f5ec; color:#26241f;
+}
+/* ── dark themes: header inverts to light, so header chrome must go dark-on-light ── */
+html[data-theme="dark"] .hbtn, html[data-theme="katana"] .hbtn{
+  background:rgba(0,0,0,.08); border-color:rgba(0,0,0,.28); color:#26241f;
+}
+html[data-theme="dark"] .hbtn:hover, html[data-theme="katana"] .hbtn:hover{background:rgba(0,0,0,.16)}
+html[data-theme="dark"] .hbtn.primary, html[data-theme="katana"] .hbtn.primary{color:#fff;background:var(--accent);border-color:var(--accent)}
+html[data-theme="dark"] #projectName, html[data-theme="katana"] #projectName{
+  background:rgba(0,0,0,.07); border-color:rgba(0,0,0,.28); color:#26241f;
+}
+html[data-theme="dark"] #projectName::placeholder, html[data-theme="katana"] #projectName::placeholder{color:#6f6c60}
+html[data-theme="dark"] label.chk, html[data-theme="katana"] label.chk{color:#3c3a33}
+html[data-theme="dark"] .brand .ver, html[data-theme="katana"] .brand .ver{color:#6f6c60}
+html[data-theme="dark"] .modeTabs, html[data-theme="katana"] .modeTabs{border-color:rgba(0,0,0,.3)}
+html[data-theme="dark"] .modeTab, html[data-theme="katana"] .modeTab{color:#55524a;border-color:rgba(0,0,0,.3)}
+html[data-theme="dark"] .modeTab:hover, html[data-theme="katana"] .modeTab:hover{background:rgba(0,0,0,.1);color:#26241f}
+html[data-theme="dark"] .modeTab.on, html[data-theme="katana"] .modeTab.on{background:#26241f;color:#f0ede3}
+html[data-theme="dark"] .lpill, html[data-theme="katana"] .lpill{background:rgba(0,0,0,.06);color:#55524a}
+html[data-theme="dark"] .lpill:hover, html[data-theme="katana"] .lpill:hover{background:rgba(0,0,0,.13);color:#26241f}
+html[data-theme="dark"] .lpill.on, html[data-theme="katana"] .lpill.on{color:#26241f}
+/* ── dark themes: toolbar hover + active tool must stay visible ── */
+html[data-theme="dark"] .tbtn:hover, html[data-theme="katana"] .tbtn:hover{background:rgba(255,255,255,.09)}
+html[data-theme="dark"] .tbtn.active, html[data-theme="katana"] .tbtn.active{background:var(--accent);color:#fff}
+html[data-theme="dark"] .tbtn.active .key, html[data-theme="katana"] .tbtn.active .key{color:#fff;border-color:rgba(255,255,255,.5)}
 :root{
 }
 *{box-sizing:border-box}
@@ -354,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.2</span>
+    <span class="ver" id="verBadge">v1.28.3</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -717,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.2', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.3', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -2010,6 +2043,7 @@ function undo(){
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
   else if(u.k==='delAnno')annos.splice(u.i,0,u.a);
   else if(u.k==='clear')annos=u.prev;
+  else if(u.k==='imgSnap'){ images=u.images; slices=u.slices; selectedImg=-1; }
   else if(u.k==='delImg'){ images.splice(u.idx,0,u.img); u.slices.forEach(s=>slices.push(s)); if(images.length===1)$('dropHint').style.display='none'; }
   else if(u.k==='image'){ const idx=images.length-1; images.pop(); slices=slices.filter(s=>s.im!==idx); if(images.length===0)$('dropHint').style.display='flex'; }
   else if(u.k==='markedit'){ const a=annos[u.i]; if(a)Object.assign(a,u.prev); if(sel.kind==='mark'&&sel.i===u.i)syncEditor(); }
@@ -3011,6 +3045,23 @@ function alignSel(mode){
   }; });
 /* z-order: bring to front / send to back */
 function reorderSel(front){
+  /* images reorder within images[] — slices reference images by INDEX, so remap them */
+  if(selectedImg>=0&&images[selectedImg]){
+    if(images.length<2){ toast('Only one image \u2014 nothing to stack it against.'); return; }
+    const i=selectedImg;
+    undoStack.push({k:'imgSnap',images:images.slice(),slices:JSON.parse(JSON.stringify(slices))});
+    const im=images.splice(i,1)[0];
+    const ni=front?images.length:0;
+    images.splice(ni,0,im);
+    slices.forEach(s=>{
+      if(s.im===i)s.im=ni;
+      else if(front&&s.im>i)s.im--;
+      else if(!front&&s.im<i)s.im++;
+    });
+    selectedImg=ni;
+    sync(); toast(front?'Image brought to front.':'Image sent to back.');
+    return;
+  }
   if(sel.kind==='mark'&&annos[sel.i]){
     boardSnap();
     const a=annos.splice(sel.i,1)[0];
@@ -3032,7 +3083,7 @@ function reorderSel(front){
 $('tbFront').onclick=()=>reorderSel(true);
 $('tbBack').onclick=()=>reorderSel(false);
 function refreshSelTools(){
-  const hasMulti=msel.length>=2, hasSel=(sel.kind&&sel.i>=0)||selected>=0;
+  const hasMulti=msel.length>=2, hasSel=(sel.kind&&sel.i>=0)||selected>=0||selectedImg>=0;
   ['tbAlL','tbAlC','tbAlR','tbAlT','tbAlM','tbAlB','tbDsH','tbDsV'].forEach(id=>$(id).classList.toggle('armed',hasMulti));
   ['tbFront','tbBack'].forEach(id=>$(id).classList.toggle('armed',hasSel));
 }
