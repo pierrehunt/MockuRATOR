@@ -40,11 +40,11 @@ ok('editing the field rewrites the label', w.eval('annos[0].text')==='hello worl
 
 // items row click switches to Move and selects
 w.eval("setTool('text'); refreshPieces();");
-d.querySelector('#pieces .piece').click();
+[...d.querySelectorAll('#pieces .piece')].pop().click();
 ok('Items row click selects text and switches to Move', w.eval("tool==='move'&&sel.kind==='mark'"));
 
 // delete from the row
-d.querySelector('#pieces .piece .px').click();
+[...d.querySelectorAll('#pieces .piece .px')].pop().click();
 ok('row ✕ deletes the label', w.eval('annos.length')===0);
 w.eval('undo();');
 ok('undo resurrects it', w.eval('annos.length')===1 && w.eval('annos[0].text')==='hello world');

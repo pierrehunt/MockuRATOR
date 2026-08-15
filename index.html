@@ -354,7 +354,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.1</span>
+    <span class="ver" id="verBadge">v1.28.2</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -717,7 +717,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.1', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.2', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -912,7 +912,7 @@ function render(){
 
   if($('chkOriginal').checked){
     images.forEach((im,idx)=>{
-      ctx.drawImage(im.img,im.x,im.y);
+      ctx.drawImage(im.img,im.x,im.y,im.w,im.h);
       ctx.fillStyle='rgba(233,230,221,0.86)';
       slices.forEach(s=>{ if(s.im===idx) ctx.fillRect(im.x+s.sx, im.y+s.sy, s.sw, s.sh); });
       ctx.strokeStyle='rgba(35,34,28,.18)'; ctx.lineWidth=lw(1);
@@ -1011,7 +1011,7 @@ function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
   groups=groups.filter(g=>groupMembers(g.id).length>0);   // prune empty groups
-  const markCount=annos.filter(a=>['box','arrow','text','widget','frame'].includes(a.t)).length;
+  const markCount=annos.filter(a=>['box','arrow','text','widget','frame'].includes(a.t)).length+images.length;
   const total=slices.length+markCount;
   const noNote=slices.filter(s=>!s.cap&&!s.g).length
     +annos.filter(a=>(a.t==='box'||a.t==='arrow'||a.t==='widget')&&!a.cap&&!a.g).length
@@ -1108,6 +1108,24 @@ function refreshPieces(){
     item.onclick=()=>{ msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
     item.append(dot,info,x); return item;
   }
+  // raw screenshots/images first — the evidence layer
+  images.forEach((im,i)=>{
+    const on=(selectedImg===i);
+    const item=document.createElement('div'); item.className='piece'+(on?' sel':'');
+    const th=document.createElement('canvas'); th.width=34; th.height=24;
+    try{ th.getContext('2d').drawImage(im.img,0,0,im.img.naturalWidth||im.w,im.img.naturalHeight||im.h,0,0,34,24); }catch(e){}
+    const info=document.createElement('div'); info.className='pinfo';
+    const lbl=document.createElement('div'); lbl.className='plbl';
+    lbl.textContent='Image \u00b7 '+Math.round(im.w)+'\u00d7'+Math.round(im.h);
+    info.appendChild(lbl);
+    const x=document.createElement('button'); x.className='px'; x.textContent='\u2715'; x.title='Delete image (slices cut from it go too)';
+    x.onclick=ev=>{ ev.stopPropagation(); selectedImg=i; delSelected(); };
+    item.onclick=()=>{ setTool('move'); clearSel(); selectedImg=i;
+      const cx=im.x+im.w/2, cy=im.y+im.h/2;
+      view.x=canvas.width/dpr/2-cx*view.s; view.y=canvas.height/dpr/2-cy*view.s;
+      render(); refreshPieces(); };
+    item.append(th,info,x); wrap.appendChild(item);
+  });
   annos.forEach((a,i)=>{ if(a.t==='frame')wrap.appendChild(mkFrameRow(a,i)); });
 
   // then ungrouped items
@@ -1235,7 +1253,8 @@ function makeSlice(r){
   });
   if(best<0){toast('Draw the box over a screenshot');return;}
   const im=images[best];
-  slices.push({im:best, sx:br.ix-im.x, sy:br.iy-im.y, sw:br.iw, sh:br.ih, x:br.ix, y:br.iy});
+  const kx=(im.img.naturalWidth||im.w)/im.w, ky=(im.img.naturalHeight||im.h)/im.h;  // resized image → source-pixel mapping
+  slices.push({im:best, sx:(br.ix-im.x)*kx, sy:(br.iy-im.y)*ky, sw:br.iw*kx, sh:br.ih*ky, x:br.ix, y:br.iy});
   undoStack.push({k:'slice'});
   selected=slices.length-1;
 }
@@ -2472,7 +2491,7 @@ function renderBoard(cb){
     g.fillText(new Date().toLocaleString(),pad+tw+18,Math.round(titleSize*1.3));
   }
   g.save(); g.translate(pad-b.x,pad+headerH-b.y);
-  if(inclImgs)images.forEach(im=>g.drawImage(im.img,im.x,im.y));
+  if(inclImgs)images.forEach(im=>g.drawImage(im.img,im.x,im.y,im.w,im.h));
   slices.forEach(s=>{
     const im=images[s.im]; if(!im)return;
     g.fillStyle='#fff'; g.fillRect(s.x,s.y,s.sw,s.sh);

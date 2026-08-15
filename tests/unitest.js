@@ -30,7 +30,7 @@ w.eval(`
   refreshPieces();
 `);
 const rows = $('pieces').querySelectorAll('.piece').length;
-ok('items list shows all 4 (2 pieces + 2 marks)', rows===4);
+ok('items list shows all 5 (1 image + 2 pieces + 2 marks)', rows===5);
 
 // select a PIECE and give it a caption (the Open Access & Staff scenario)
 w.eval(`selectPiece(0);`);
