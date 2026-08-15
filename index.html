@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.4</span>
+    <span class="ver" id="verBadge">v1.28.5</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -670,7 +670,7 @@ a.plainlink:hover{color:#137059}
         <button class="mini" id="dsV" title="Distribute vertically"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="8" height="3" rx="0.8"/><rect x="4" y="6.5" width="8" height="3" rx="0.8"/><rect x="4" y="11.5" width="8" height="3" rx="0.8"/></svg></button>
       </div>
     </div>
-    <div id="pieces" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
+    <div id="pieces" style="flex:1;min-height:60px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
     <div class="railTip small" style="font-size:10px;margin-top:4px">Ctrl-click rows to multi-select → Group. Right-click any item for quick actions.</div>
   </div>
 </div>
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.4', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.5', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -978,6 +978,15 @@ function render(){
     const d=Math.max(1.8,2.2/view.s);
     for(let gx=x0;gx<=x1;gx+=gs)for(let gy=y0;gy<=y1;gy+=gs)ctx.fillRect(gx,gy,d,d);
   }
+  /* multi-select outlines — every Ctrl-clicked item shows on canvas */
+  if(msel.length){
+    ctx.strokeStyle='#0f6e56'; ctx.lineWidth=lw(2); ctx.setLineDash([lw(4),lw(3)]);
+    msel.forEach(key=>{
+      const b=itemBox(key); if(!b)return;
+      ctx.strokeRect(b.x-lw(3),b.y-lw(3),b.w+lw(6),b.h+lw(6));
+    });
+    ctx.setLineDash([]);
+  }
   /* selected raw image ring */
   if(selectedImg>=0&&images[selectedImg]){
     const im=images[selectedImg];
@@ -1042,6 +1051,7 @@ function render(){
 function sync(){ render(); refreshPieces(); scheduleAutosave(); }
 
 /* ---------------- pieces list ---------------- */
+let openScreens={};   // frame idx -> expanded?  groups: 'g'+id -> expanded?
 function refreshPieces(){
   const wrap=$('pieces'); wrap.innerHTML='';
   groups=groups.filter(g=>groupMembers(g.id).length>0);   // prune empty groups
@@ -1077,7 +1087,7 @@ function refreshPieces(){
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete piece';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=slices.splice(i,1)[0]; undoStack.push({k:'delSlice',s:rm,i}); if(sel.kind==='piece'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
-      if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      if((ev.ctrlKey||ev.metaKey)&&!s.g){ const k='piece:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); return; }
       msel=[]; setTool('move'); selectPiece(i); centerOn(s); render(); refreshPieces();
     };
     item.append(th,info,x); return item;
@@ -1097,7 +1107,7 @@ function refreshPieces(){
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete mark';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
-      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); return; }
       msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces();
     };
     item.append(dot,info,x); return item;
@@ -1119,8 +1129,18 @@ function refreshPieces(){
       slices.forEach(s=>{ if(s.g===gr.id)delete s.g; });
       groups.splice(gi,1); if(sel.kind==='group'&&sel.i===gi)clearSel(); msel=[]; sync(); };
     row.onclick=()=>{ msel=[]; selectGroup(gi); render(); refreshPieces(); };
-    row.append(dot,info,x); wrap.appendChild(row);
-    mem.forEach(m=>{
+    const gopen=!!openScreens['g'+gr.id];
+    row.append(dot,info);
+    if(mem.length){
+      const tog=document.createElement('span');
+      tog.textContent=(gopen?'\u25be ':'\u25b8 ')+mem.length;
+      tog.style.cssText='font-size:10px;color:var(--muted);cursor:pointer;flex:0 0 auto;padding:2px 4px';
+      tog.title=gopen?'Collapse members':'Show '+mem.length+' members';
+      tog.onclick=ev=>{ ev.stopPropagation(); openScreens['g'+gr.id]=!gopen; refreshPieces(); };
+      row.appendChild(tog);
+    }
+    row.appendChild(x); wrap.appendChild(row);
+    if(gopen)mem.forEach(m=>{
       const r=m.kind==='piece'?mkPieceRow(slices[m.i],m.i,true):(annos[m.i].t==='widget'?mkWidgetRow(annos[m.i],m.i,true):mkMarkRow(annos[m.i],m.i,true));
       if(r)wrap.appendChild(r);
     });
@@ -1160,7 +1180,22 @@ function refreshPieces(){
       render(); refreshPieces(); };
     item.append(th,info,x); wrap.appendChild(item);
   });
-  annos.forEach((a,i)=>{ if(a.t==='frame')wrap.appendChild(mkFrameRow(a,i)); });
+  annos.forEach((a,i)=>{
+    if(a.t!=='frame')return;
+    const kids=annos.map((w,wi)=>({w,wi})).filter(x=>x.w.t==='widget'&&!x.w.g&&frameOf(x.w)===i);
+    const open=!!openScreens[i];
+    const row=mkFrameRow(a,i);
+    if(kids.length){
+      const tog=document.createElement('span');
+      tog.textContent=(open?'\u25be ':'\u25b8 ')+kids.length;
+      tog.style.cssText='font-size:10px;color:var(--muted);cursor:pointer;flex:0 0 auto;padding:2px 4px';
+      tog.title=open?'Collapse widgets':'Show '+kids.length+' widgets';
+      tog.onclick=ev=>{ ev.stopPropagation(); openScreens[i]=!open; refreshPieces(); };
+      row.insertBefore(tog,row.lastChild);
+    }
+    wrap.appendChild(row);
+    if(open)kids.forEach(x=>{ const r=mkWidgetRow(x.w,x.wi,true); if(r)wrap.appendChild(r); });
+  });
 
   // then ungrouped items
   slices.forEach((s,i)=>{ if(!s.g){ const r=mkPieceRow(s,i,false); if(r)wrap.appendChild(r);} });
@@ -1178,12 +1213,12 @@ function refreshPieces(){
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete widget';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
     item.onclick=ev=>{
-      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); return; }
+      if((ev.ctrlKey||ev.metaKey)&&!a.g){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); return; }
       msel=[]; setTool('move'); pendingKind=null; if(window.refreshChips)refreshChips(); selectMark(i); centerOnAnno(a); render(); refreshPieces();
     };
     item.append(dot,info,x); return item;
   }
-  annos.forEach((a,i)=>{ if(a.t==='widget'&&!a.g)wrap.appendChild(mkWidgetRow(a,i,false)); });
+  annos.forEach((a,i)=>{ if(a.t==='widget'&&!a.g&&frameOf(a)<0)wrap.appendChild(mkWidgetRow(a,i,false)); });
   annos.forEach((a,i)=>{
     if(a.t!=='text')return;
     const on=(sel.kind==='mark'&&sel.i===i);
@@ -3204,14 +3239,19 @@ const PRESETS={
 };
 function loadPreset(name){
   const p=PRESETS[name]; if(!p)return;
-  let ox=60, oy=60;
-  images.forEach(im=>{ ox=Math.max(ox,im.x+im.w+80); });
-  annos.forEach(a=>{ if(a.t==='widget')ox=Math.max(ox,(a.x+(a.w||0))+80); });
+  const {ox,oy}=freeSpot();
   boardSnap();
-  p.forEach(([kind,dx,dy,w,h,label])=>annos.push({t:'widget',kind,x:ox+dx,y:oy+dy,w,h,label}));
+  /* every starter drops inside a proper screen frame — it moves and reports as one unit */
+  const dev=name==='dash'?'desktop':'phone';
+  const spec=FRAMES[dev];
+  const label=name==='login'?'Login':name==='dash'?'Dashboard':'Settings';
+  const pad=dev==='desktop'?40:45, padY=dev==='desktop'?70:100;
+  annos.push({t:'frame',device:dev,label,x:ox,y:oy,w:spec.w,h:spec.h});
+  p.forEach(([kind,dx,dy,w,h,wl])=>annos.push({t:'widget',kind,x:ox+pad+dx,y:oy+padY+dy,w,h,label:wl}));
+  frameSeq=annos.filter(a=>a.t==='frame').length+1;
   $('dropHint').style.display='none';
   clearSel(); sync(); fitView(); render();
-  toast('Starter layout placed — double-click widgets to rename, click to note what each does.');
+  toast('“'+label+'” screen placed — drag its name to move the whole thing. Undo removes it all.');
 }
 $('presetLogin').onclick=()=>loadPreset('login');
 $('presetDash').onclick=()=>loadPreset('dash');

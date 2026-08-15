@@ -43,7 +43,8 @@ ok('group note saved once', w.eval('groups[0].cap')==='The gap between the text 
 w.eval(`[...markColors.children].find(b=>b.dataset.c==='#16a34a').click();`);
 ok('group recolour propagates to all members', w.eval("annos.filter(a=>a.g).every(a=>a.c==='#16a34a')"));
 
-// items list: group row + 4 indented members + 1 ungrouped
+// items list: group row + 4 indented members (collapsed by default — expand first) + 1 ungrouped
+w.eval("openScreens['g'+groups[0].id]=true; refreshPieces();");
 const rows=$('pieces');
 ok('items shows a group row', !!rows.querySelector('.grpRow'));
 ok('4 indented member rows', rows.querySelectorAll('.member').length===4);
