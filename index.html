@@ -354,7 +354,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.0</span>
+    <span class="ver" id="verBadge">v1.28.1</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -717,7 +717,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.1', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1307,7 +1307,7 @@ canvas.addEventListener('pointerdown',e=>{
       /* Bug 2: image selection and drag */
       const ii=hitImg(p);
       if(ii>=0){
-        selectedImg=ii; clearSel();
+        clearSel(); selectedImg=ii;   // order matters: clearSel() wipes selectedImg
         drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
         if(!window.__imgHintShown){ window.__imgHintShown=1;
           toast('Drag the corners to resize — hold Shift to keep proportions. Del removes it.'); }
@@ -2213,7 +2213,7 @@ function buildCtxItems(p,e){
     return items;
   }
   if(ii>=0){
-    selectedImg=ii; clearSel(); render();
+    clearSel(); selectedImg=ii; render();
     items.push({label:'Delete image',action:()=>delSelected(),danger:true});
     return items;
   }

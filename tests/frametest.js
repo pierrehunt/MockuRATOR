@@ -125,6 +125,23 @@ ok('screen row appears in Items',/Screen.*Tablet.*Settings/i.test($('pieces').te
 ok('screen ✕ deletes only the frame',
   (d.querySelector('#pieces .px').click(),w.eval("annos.filter(a=>a.t==='frame').length"))===0);
 
+/* --- 11. image click-select regression (v1.28.1): selection must STICK --- */
+w.eval(`
+  annos=[]; slices=[];
+  images=[
+    {img:{},dataURL:'a',x:0,y:0,w:300,h:200},
+    {img:{},dataURL:'b',x:400,y:0,w:300,h:200}
+  ];
+  selectedImg=1; view={s:1,x:60,y:60}; setTool('move'); clearSel();
+  selectedImg=1;
+`);
+pt('pointerdown',150,100);   // click inside image 0 (body, away from corners)
+ok('clicking another image selects it',w.eval("selectedImg===0"));
+pt('pointerup',150,100);
+ok('image selection sticks after pointerup',w.eval("selectedImg===0"));
+pt('pointerdown',550,100);pt('pointerup',550,100);
+ok('re-selecting the other image also sticks',w.eval("selectedImg===1"));
+
 console.log(out.join('\n'));
 if(errs.length)console.log('\nERRORS:\n'+errs.slice(0,3).join('\n'));
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL FRAME TESTS PASSED':'FAILED');
