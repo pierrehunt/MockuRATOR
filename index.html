@@ -67,7 +67,7 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
 #projectName::placeholder{color:#9a978a}
 header .spacer{flex:1}
 .hbtn{background:var(--ink2);color:#efede4;border:1px solid #4a4940;border-radius:6px;
-  padding:6px 12px;cursor:pointer}
+  padding:5px 9px;cursor:pointer;font-size:12.5px;white-space:nowrap}
 .hbtn:hover{background:#3d3c33}
 .hbtn.primary{background:var(--accent);border-color:var(--accent);font-weight:600}
 .hbtn.primary:hover{background:#137059}
@@ -80,6 +80,8 @@ label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:#c9c6b8;c
   padding:6px 10px;cursor:pointer;color:var(--ink2);display:flex;gap:6px;align-items:center}
 .tbtn:hover{background:#f0eee6}
 .tbtn.active{background:var(--ink);color:#efede4}
+.tbtn.tiny{padding:4px 7px;font-size:13px;opacity:.45}
+.tbtn.tiny.armed{opacity:1}
 .tbtn .key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
   color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .tbtn.active .key{color:#c9c6b8;border-color:#55534a}
@@ -180,7 +182,7 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .panClose:hover{background:rgba(255,255,255,.32)}
 .panBody{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:500px}
 /* launcher pills */
-.lpill{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;
+.lpill{padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:600;cursor:pointer;
   border:1px solid transparent;display:flex;align-items:center;gap:5px;white-space:nowrap;
   background:rgba(255,255,255,.06);color:#9a978a;transition:opacity .15s}
 .lpill:hover{background:rgba(255,255,255,.12);color:#efede4}
@@ -326,11 +328,11 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.27.0</span>
+    <span class="ver" id="verBadge">v1.27.1</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
-  <button class="hbtn" id="btnPanel" title="Show or hide all panels">Panels</button>
+  <button class="hbtn" id="btnPanel" title="Show or hide all panels">☰</button>
   <div id="panLauncher" style="display:flex;gap:3px;align-items:center">
     <button class="lpill" id="lp-notes"   onclick="togglePanel('notes')"  ><span class="ldot" style="background:#185fa5"></span>Notes</button>
     <button class="lpill" id="lp-items"   onclick="togglePanel('items')"  ><span class="ldot" style="background:#ba7517"></span>Items</button>
@@ -339,16 +341,16 @@ a.plainlink:hover{color:#137059}
     <button class="lpill" id="lp-rails"   onclick="togglePanel('rails')"  ><span class="ldot" style="background:#993c1d"></span>Rails</button>
   </div>
   <span class="spacer"></span>
-  <button class="hbtn" id="btnPreview" title="Preview the board at desktop, tablet, and phone scale">👁 Preview</button>
+  <button class="hbtn" id="btnPreview" title="Preview the board at desktop, tablet, and phone scale">👁</button>
   <button class="hbtn" id="btnTheme" title="Cycle colour theme — easier on the eyes">🎨</button>
-  <button class="hbtn" id="btnGetApp" title="Download MockuRATOR.html — save it, double-click it, run offline">⬇ Get app</button>
-  <button class="hbtn" id="btnOpen">Open image</button>
-  <button class="hbtn" id="btnCapture" title="Capture any window, browser tab, or screen via the system picker (works on the HTTPS site)">📸 Capture</button>
-  <label class="chk"><input type="checkbox" id="chkOriginal" checked> show originals</label>
-  <button class="hbtn" id="btnLoad">Load JSON</button>
-  <button class="hbtn" id="btnSave">Save JSON</button>
-  <button class="hbtn primary" id="btnExport">Export PNG</button>
-  <button class="hbtn primary" id="btnPackage" title="Zip: annotated PNG + a written report.md the AI can read + the reload JSON">Export Package</button>
+  <button class="hbtn" id="btnGetApp" title="Download MockuRATOR.html — save it, double-click it, run offline">⬇ App</button>
+  <button class="hbtn" id="btnOpen" title="Open an image or log file">Open</button>
+  <button class="hbtn" id="btnCapture" title="Capture any window, browser tab, or screen via the system picker (works on the HTTPS site)">📸</button>
+  <label class="chk" title="Show or hide the original screenshots under your slices"><input type="checkbox" id="chkOriginal" checked> originals</label>
+  <button class="hbtn" id="btnLoad" title="Load a saved board JSON">Load</button>
+  <button class="hbtn" id="btnSave" title="Save the whole board as JSON">Save</button>
+  <button class="hbtn primary" id="btnExport" title="Export the annotated board as a PNG">PNG</button>
+  <button class="hbtn primary" id="btnPackage" title="Zip: annotated PNG + a written report.md the AI can read + the reload JSON">Package</button>
   <input type="file" id="fileInput" accept="image/*,.txt,.log" multiple hidden>
   <input type="file" id="jsonInput" accept=".json,application/json" hidden>
 </header>
@@ -368,6 +370,20 @@ a.plainlink:hover{color:#137059}
   <button class="swatch" data-color="#2563eb" style="background:#2563eb" title="Blue"></button>
   <button class="swatch" data-color="#16a34a" style="background:#16a34a" title="Green"></button>
   <button class="swatch" data-color="#111827" style="background:#111827" title="Black"></button>
+  <div class="tsep"></div>
+  <div id="selTools" style="display:flex;gap:2px;align-items:center">
+    <button class="tbtn tiny" id="tbAlL" title="Align left edges (select 2+)">⇤</button>
+    <button class="tbtn tiny" id="tbAlC" title="Align horizontal centers">↔</button>
+    <button class="tbtn tiny" id="tbAlR" title="Align right edges">⇥</button>
+    <button class="tbtn tiny" id="tbAlT" title="Align top edges">⤒</button>
+    <button class="tbtn tiny" id="tbAlM" title="Align vertical centers">↕</button>
+    <button class="tbtn tiny" id="tbAlB" title="Align bottom edges">⤓</button>
+    <button class="tbtn tiny" id="tbDsH" title="Distribute horizontally (equal gaps)">⋯</button>
+    <button class="tbtn tiny" id="tbDsV" title="Distribute vertically (equal gaps)">⋮</button>
+    <div class="tsep"></div>
+    <button class="tbtn tiny" id="tbFront" title="Bring selected to front">⬆︎</button>
+    <button class="tbtn tiny" id="tbBack" title="Send selected to back">⬇︎</button>
+  </div>
   <div class="right">
     <button class="tbtn" id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
     <button class="tbtn" id="btnDup" title="Duplicate selected piece (Ctrl+D)">⧉ Duplicate</button>
@@ -655,7 +671,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.27.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.27.1', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -878,8 +894,8 @@ function render(){
     const W=canvas.width/dpr, H=canvas.height/dpr, gs=24;
     const x0=Math.floor((-view.x/view.s)/gs)*gs, y0=Math.floor((-view.y/view.s)/gs)*gs;
     const x1=(W-view.x)/view.s, y1=(H-view.y)/view.s;
-    ctx.fillStyle='rgba(35,34,28,.14)';
-    const d=Math.max(1.2,1.4/view.s);
+    ctx.fillStyle='rgba(35,34,28,.26)';
+    const d=Math.max(1.5,1.8/view.s);
     for(let gx=x0;gx<=x1;gx+=gs)for(let gy=y0;gy<=y1;gy+=gs)ctx.fillRect(gx,gy,d,d);
   }
   /* selected raw image ring */
@@ -1097,6 +1113,7 @@ function refreshPieces(){
     item.append(ic,info,x); wrap.appendChild(item);
   });
   if(window.refreshRails)refreshRails();
+  if(window.refreshSelTools)refreshSelTools();
 }
 function centerOn(s){
   const W=canvas.width/dpr, H=canvas.height/dpr;
@@ -1954,13 +1971,14 @@ $('btnFit').onclick=fitView;
 $('btnClear').onclick=()=>{ if(annos.length){undoStack.push({k:'clear',prev:annos.slice()});annos=[];sync();} };
 $('chkOriginal').onchange=render;
 /* ====== floating panel manager ====== */
+const PANEL_TOP=()=>{ const t=$('tools'); return (t?t.getBoundingClientRect().bottom:96)+8; };
 const PANEL_DEFS=[
-  {id:'panNotes',   key:'notes',   col:'#185fa5', defPos:()=>({x:8,y:100})},
-  {id:'panItems',   key:'items',   col:'#ba7517', defPos:()=>({x:8,y:340})},
-  {id:'secSel',     key:'sel',     col:'#0f6e56', defPos:()=>({x:Math.max(8,window.innerWidth-310),y:100})},
-  {id:'panCapture', key:'capture', col:'#534ab7', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:100})},
-  {id:'panWidgets', key:'widgets', col:'#3b6d11', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:100})},
-  {id:'panRails',   key:'rails',   col:'#993c1d', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:380})},
+  {id:'panNotes',   key:'notes',   col:'#185fa5', defPos:()=>({x:8,y:PANEL_TOP()})},
+  {id:'panItems',   key:'items',   col:'#ba7517', defPos:()=>({x:8,y:PANEL_TOP()+250})},
+  {id:'secSel',     key:'sel',     col:'#0f6e56', defPos:()=>({x:Math.max(8,window.innerWidth-600),y:PANEL_TOP()})},
+  {id:'panCapture', key:'capture', col:'#534ab7', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:PANEL_TOP()})},
+  {id:'panWidgets', key:'widgets', col:'#3b6d11', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:PANEL_TOP()})},
+  {id:'panRails',   key:'rails',   col:'#993c1d', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:PANEL_TOP()+340})},
 ];
 const panPos={};
 PANEL_DEFS.forEach(p=>{
@@ -1972,14 +1990,14 @@ function clampPanel(key){
   const el=$(def.id); if(!el)return;
   const pos=panPos[key];
   pos.x=Math.max(0,Math.min(window.innerWidth-(el.offsetWidth||260),pos.x));
-  pos.y=Math.max(0,Math.min(window.innerHeight-(el.offsetHeight||200),pos.y));
+  pos.y=Math.max(PANEL_TOP()-8,Math.min(window.innerHeight-40,pos.y));
   el.style.left=pos.x+'px'; el.style.top=pos.y+'px';
 }
 function showPanel(key,v){
   const def=PANEL_DEFS.find(p=>p.key===key); if(!def)return;
   const el=$(def.id); if(!el)return;
   el.style.display=v?'flex':'none';
-  if(v)clampPanel(key);
+  if(v){ clampPanel(key); if(key==='rails'&&window.refreshRails)refreshRails(); }
   updateLauncherPills();
 }
 function togglePanel(key){
@@ -2143,6 +2161,7 @@ window.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&k==='d'){e.preventDefault();dupSelected();return;}
   if(!e.ctrlKey&&!e.metaKey&&map[k]){setTool(map[k]);return;}
   if(e.key==='Delete'||e.key==='Backspace'){delSelected();return;}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='g'||e.key==='G')){e.preventDefault();toggleSnap();return;}
 });
 window.addEventListener('keyup',e=>{ if(e.code==='Space')spaceDown=false; });
 
@@ -2825,11 +2844,52 @@ function alignSel(mode){
 }
 [['alL','L'],['alC','C'],['alR','R'],['alT','T'],['alM','M'],['alB','B'],['dsH','DH'],['dsV','DV']]
   .forEach(([id,m])=>{ $(id).onclick=()=>alignSel(m); });
+/* toolbar mirrors */
+[['tbAlL','L'],['tbAlC','C'],['tbAlR','R'],['tbAlT','T'],['tbAlM','M'],['tbAlB','B'],['tbDsH','DH'],['tbDsV','DV']]
+  .forEach(([id,m])=>{ $(id).onclick=()=>{
+    if(msel.length<2){ toast('Ctrl-click 2+ items in the Items panel first — then align.'); return; }
+    alignSel(m);
+  }; });
+/* z-order: bring to front / send to back */
+function reorderSel(front){
+  if(sel.kind==='mark'&&annos[sel.i]){
+    boardSnap();
+    const a=annos.splice(sel.i,1)[0];
+    if(front)annos.push(a); else annos.unshift(a);
+    sel.i=front?annos.length-1:0; msel=[];
+    sync(); toast(front?'Brought to front.':'Sent to back.'); return;
+  }
+  if((sel.kind==='piece'&&slices[sel.i])||selected>=0){
+    const i=sel.kind==='piece'?sel.i:selected;
+    boardSnap();
+    const s=slices.splice(i,1)[0];
+    if(front)slices.push(s); else slices.unshift(s);
+    if(sel.kind==='piece')sel.i=front?slices.length-1:0;
+    selected=front?slices.length-1:0; msel=[];
+    sync(); toast(front?'Brought to front.':'Sent to back.'); return;
+  }
+  toast('Select something first — then change its stacking order.');
+}
+$('tbFront').onclick=()=>reorderSel(true);
+$('tbBack').onclick=()=>reorderSel(false);
+function refreshSelTools(){
+  const hasMulti=msel.length>=2, hasSel=(sel.kind&&sel.i>=0)||selected>=0;
+  ['tbAlL','tbAlC','tbAlR','tbAlT','tbAlM','tbAlB','tbDsH','tbDsV'].forEach(id=>$(id).classList.toggle('armed',hasMulti));
+  ['tbFront','tbBack'].forEach(id=>$(id).classList.toggle('armed',hasSel));
+}
 
 /* ---------------- wireframe mode ---------------- */
 let wfMode=false;
 const WF_GRID=8;
-function snapv(v){ return wfMode ? Math.round(v/WF_GRID)*WF_GRID : v; }
+let snapOn=true;
+try{ if(localStorage.getItem('mockurator:snap')==='0')snapOn=false; }catch(e){}
+function snapv(v){ return (wfMode&&snapOn) ? Math.round(v/WF_GRID)*WF_GRID : v; }
+function toggleSnap(){
+  snapOn=!snapOn;
+  try{ localStorage.setItem('mockurator:snap',snapOn?'1':'0'); }catch(e){}
+  toast(snapOn?'Snap on — widgets stick to the 8px grid.':'Snap off — free placement.');
+  if(window.refreshChips)refreshChips();
+}
 function setWfMode(on,announce){
   wfMode=!!on;
   document.body.classList.toggle('wfmode',wfMode);
@@ -2880,7 +2940,7 @@ try{ if(localStorage.getItem('mockurator:wfmode')==='1')setWfMode(true,false); }
     const hw=$('hintWireframe');
     if(hw){ hw.innerHTML=pendingKind&&tool==='widget'
       ?'<b>click or drag</b> to place · <b>Esc</b> to stop placing · <b>V</b> to move'
-      :'<b>V</b> move · <b>A</b> flow arrow · click a chip to place · <span class="kbd">?</span> all shortcuts'; }
+      :'<b>V</b> move · <b>A</b> flow arrow · click a chip to place · snap '+(snapOn?'8px':'off')+' <span class="kbd">Ctrl+G</span> · <span class="kbd">?</span> all shortcuts'; }
   };
 })();
 document.querySelectorAll('#framechips [data-f]').forEach(b=>{
