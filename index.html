@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.29.1</span>
+    <span class="ver" id="verBadge">v1.29.2</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.29.1', APP_BUILD='2026-08-14';
+const APP_VERSION='1.29.2', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1177,10 +1177,13 @@ function refreshPieces(){
     info.appendChild(lbl);
     const x=document.createElement('button'); x.className='px'; x.textContent='\u2715'; x.title='Delete image (slices cut from it go too)';
     x.onclick=ev=>{ ev.stopPropagation(); selectedImg=i; delSelected(); };
-    item.onclick=()=>{ setTool('move'); clearSel(); selectedImg=i;
+    item.onclick=ev=>{
+      if(ev.ctrlKey||ev.metaKey){ const k='img:'+i; msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); if(msel.length>=2)mselHint(); return; }
+      setTool('move'); clearSel(); selectedImg=i;
       const cx=im.x+im.w/2, cy=im.y+im.h/2;
       view.x=canvas.width/dpr/2-cx*view.s; view.y=canvas.height/dpr/2-cy*view.s;
       render(); refreshPieces(); };
+    if(msel.includes('img:'+i))item.className+=' msel';
     item.append(th,info,x); wrap.appendChild(item);
   });
   annos.forEach((a,i)=>{
@@ -1426,6 +1429,7 @@ canvas.addEventListener('pointerdown',e=>{
     }
     const ii=hitImg(p);
     if(ii>=0){
+      if(!e.altKey&&msel.length>=2&&msel.includes('img:'+ii)){ drag=mkMselDrag(msel,p); return; }
       clearSel(); selectedImg=ii;   // order matters: clearSel() wipes selectedImg
       drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
       if(!window.__imgHintShown){ window.__imgHintShown=1;
@@ -1555,10 +1559,11 @@ canvas.addEventListener('pointerup',()=>{
       const hit=[];
       const ix=(b)=>!(b.x>r.x+r.w||b.x+b.w<r.x||b.y>r.y+r.h||b.y+b.h<r.y);
       slices.forEach((s,i)=>{ if(!s.g&&ix({x:s.x,y:s.y,w:s.sw,h:s.sh}))hit.push('piece:'+i); });
+      images.forEach((im,i)=>{ if(ix({x:im.x,y:im.y,w:im.w,h:im.h}))hit.push('img:'+i); });
       annos.forEach((a,i)=>{
         if(a.g)return;
         let b=null;
-        if(a.t==='box'||a.t==='widget')b={x:a.x,y:a.y,w:a.w,h:a.h};
+        if(a.t==='box'||a.t==='widget'||a.t==='frame')b={x:a.x,y:a.y,w:a.w,h:a.h};
         else if(a.t==='arrow')b={x:Math.min(a.x1,a.x2),y:Math.min(a.y1,a.y2),w:Math.abs(a.x2-a.x1),h:Math.abs(a.y2-a.y1)};
         else if(a.t==='text')b={x:a.x,y:a.y-a.size,w:(a.text||'').length*a.size*0.55,h:a.size*1.3};
         if(b&&ix(b))hit.push('mark:'+i);
@@ -1721,6 +1726,23 @@ function mkFrameDrag(fi,p){
 }
 /* multi-select / group rigid drag: drag any member, everyone comes along (Alt = solo) */
 function mkMselDrag(keys,p){
+  /* a frame in the set carries its contents — add contained widgets + inside arrows, deduped,
+     so screens never abandon their children when a selection moves */
+  const set=new Set(keys);
+  keys.forEach(k=>{
+    const m=k.match(/^mark:(\d+)$/); if(!m)return;
+    const fi=+m[1], f=annos[fi]; if(!f||f.t!=='frame')return;
+    annos.forEach((a,j)=>{
+      if(j===fi)return;
+      if(a.t==='widget'&&frameOf(a)===fi)set.add('mark:'+j);
+      else if(a.t==='arrow'){
+        const in1=(a.x1>=f.x&&a.x1<=f.x+f.w&&a.y1>=f.y&&a.y1<=f.y+f.h);
+        const in2=(a.x2>=f.x&&a.x2<=f.x+f.w&&a.y2>=f.y&&a.y2<=f.y+f.h);
+        if(in1&&in2)set.add('mark:'+j);
+      }
+    });
+  });
+  keys=[...set];
   return {kind:'moveMsel',start:p,moved:false,keys:keys.slice(),
     snap:{slices:JSON.parse(JSON.stringify(slices)),annos:JSON.parse(JSON.stringify(annos)),groups:JSON.parse(JSON.stringify(groups))},
     origs:keys.map(k=>{ const b=itemBox(k); return b?{key:k,x:b.x,y:b.y}:null; }).filter(Boolean)};
@@ -2041,6 +2063,7 @@ $('btnGroup').onclick=()=>{
     const [kind,idx]=key.split(':'); const i=+idx;
     if(kind==='mark'&&annos[i]&&annos[i].t!=='frame'){ annos[i].g=gid; if(annos[i].t!=='widget')gc=annos[i].c||gc; }
     if(kind==='piece'&&slices[i]) slices[i].g=gid;
+    /* img: keys skipped — images are evidence, not Issues */
   });
   groups.push({id:gid,cap:'',c:gc});
   annos.forEach(a=>{ if(a.g===gid&&a.t!=='widget')a.c=gc; });
@@ -3121,6 +3144,8 @@ $('devPreview').addEventListener('click',e=>{ if(e.target===$('devPreview'))$('d
 /* ---------------- alignment ---------------- */
 function itemBox(key){
   const [k,n]=key.split(':'), i=+n;
+  if(k==='img'){ const im=images[i]; if(!im)return null;
+    return {x:im.x,y:im.y,w:im.w,h:im.h,move:(nx,ny)=>{im.x=nx;im.y=ny;}}; }
   if(k==='piece'){ const s=slices[i]; if(!s)return null;
     return {x:s.x,y:s.y,w:s.sw,h:s.sh,move:(nx,ny)=>{s.x=nx;s.y=ny;}}; }
   const a=annos[i]; if(!a)return null;

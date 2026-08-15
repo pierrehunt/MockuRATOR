@@ -91,6 +91,28 @@ let crashed=false;
 try{ pt('pointermove',50,50); }catch(e){ crashed=true; }
 ok('empty-origs guard: fully stale selection aborts without throwing',!crashed&&w.eval("drag===null"));
 
+/* ── THE ENTITY TEST (v1.29.2): lasso frames + widgets + arrow + image, drag once, ALL move ── */
+w.eval(`
+  annos=[
+    {t:'frame',device:'phone',label:'A',x:1000,y:1000,w:200,h:300},
+    {t:'widget',kind:'button',x:1040,y:1100,w:120,h:44,label:'Go'},
+    {t:'frame',device:'phone',label:'B',x:1400,y:1000,w:200,h:300},
+    {t:'arrow',x1:1220,y1:1150,x2:1380,y2:1150,c:'#2563eb'}
+  ];
+  slices=[]; groups=[];
+  images=[{img:{naturalWidth:100,naturalHeight:80},dataURL:'x',x:1000,y:1400,w:100,h:80}];
+  msel=[]; clearSel(); selectedImg=-1; view={s:1,x:60,y:60};
+`);
+pt('pointerdown',950,950); pt('pointermove',1700,1550); pt('pointerup',1700,1550);   // lasso everything
+ok('entity: marquee captured frames + widget + arrow + image',
+   w.eval("msel.includes('mark:0')&&msel.includes('mark:2')&&msel.includes('mark:3')&&msel.includes('img:0')"));
+pt('pointerdown',1100,1122); pt('pointermove',1200,1222); pt('pointerup',1200,1222);  // drag by the widget body — a guaranteed member hit
+ok('entity: both screens moved',w.eval("annos[0].x===1100&&annos[2].x===1500"));
+ok('entity: the widget travelled inside its screen',w.eval("annos[1].x===1140&&annos[1].y===1200"));
+ok('entity: the flow arrow moved with the set',w.eval("annos[3].x1===1320&&annos[3].y1===1250"));
+ok('entity: the image moved too',w.eval("images[0].x===1100&&images[0].y===1500"));
+ok('entity: no double-move of the frame-contained widget',w.eval("annos[1].x-1040===100"));
+
 console.log(out.join('\n'));
 if(errs.length)console.log('ERRORS: '+errs[0]);
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL MSEL-DRAG TESTS PASSED':'SOME FAILED');
