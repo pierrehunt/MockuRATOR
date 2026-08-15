@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.29.0</span>
+    <span class="ver" id="verBadge">v1.29.1</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.29.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.29.1', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1233,7 +1233,10 @@ function refreshPieces(){
     info.append(lbl,cap);
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete text';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
-    item.onclick=()=>{ msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.onclick=ev=>{
+      if(ev.ctrlKey||ev.metaKey){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); if(msel.length>=2)mselHint(); return; }
+      msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.className+=(msel.includes('mark:'+i)?' msel':'');
     item.append(dot,info,x); wrap.appendChild(item);
   });
 
@@ -1367,60 +1370,70 @@ canvas.addEventListener('pointerdown',e=>{
         }
       }
     }
-    // a selected box is body-draggable even when unfilled
+    /* rigid-drag helper: msel first, then group — Alt always opts out (audit fix 1) */
+    const rigidFor=(key,gid)=>{
+      if(e.altKey)return null;
+      if(msel.length>=2&&msel.includes(key))return mkMselDrag(msel,p);
+      if(gid){ const keys=groupKeys(gid); if(keys.length>=2)return mkMselDrag(keys,p); }
+      return null;
+    };
+    // a selected box is body-draggable even when unfilled — but the selection/group outranks solo
     if(sel.kind==='mark'&&annos[sel.i]){
       const a=annos[sel.i];
       if(a.t==='frame'&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
+        const rig=rigidFor('mark:'+sel.i,null);
+        if(rig){ drag=rig; return; }
         drag=mkFrameDrag(sel.i,p); return;      // selected screen: body-drag moves screen + contents
       }
       if((a.t==='box'||a.t==='widget')&&p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){
+        const rig=rigidFor('mark:'+sel.i,a.g);
+        if(rig){ drag=rig; return; }
         drag={kind:'moveAnno',i:sel.i,start:p,orig:{...a},moved:false}; return;
       }
     }
+    /* hit order matches DRAW order: annos above frames above slices above images (audit fix 2) */
+    const ai=hitAnno(p);
+    if(ai>=0){
+      const rig=rigidFor('mark:'+ai,annos[ai].g);
+      if(rig){ drag=rig; return; }
+      selectMark(ai);
+      drag={kind:'moveAnno',i:ai,start:p,orig:{...annos[ai]},moved:false};
+      render(); refreshPieces(); return;
+    }
+    const fi=hitFrame(p);
+    if(fi>=0){
+      const rig=rigidFor('mark:'+fi,null);
+      if(rig){ drag=rig; return; }
+      selectMark(fi);
+      drag=mkFrameDrag(fi,p);
+      render(); refreshPieces(); return;
+    }
     const i=hitSlice(p);
     if(i>=0){
-      if(!e.altKey&&msel.length>=2&&msel.includes('piece:'+i)){ drag=mkMselDrag(msel,p); return; }
-      if(!e.altKey&&slices[i].g){
-        const keys=groupKeys(slices[i].g);
-        if(keys.length>=2){ selectPiece(i); drag=mkMselDrag(keys,p); render(); refreshPieces(); return; }
-      }
+      const rig=rigidFor('piece:'+i,slices[i].g);
+      if(rig){ drag=rig; return; }
+      /* solo drag reorders the slice to the top — remap msel piece keys so they stay true (audit fix 3) */
       const s=slices.splice(i,1)[0]; slices.push(s); const ni=slices.length-1;
+      msel=msel.map(k=>{
+        const m=k.match(/^piece:(\d+)$/); if(!m)return k;
+        const idx=+m[1];
+        if(idx===i)return 'piece:'+ni;
+        return idx>i?('piece:'+(idx-1)):k;
+      });
       selectPiece(ni);
       drag={kind:'moveSlice',i:ni,dx:p.x-s.x,dy:p.y-s.y};
-    }else{
-      const ai=hitAnno(p);
-      if(ai>=0){
-        /* member of the multi-select? drag them all (Alt = just this one) */
-        if(!e.altKey&&msel.length>=2&&msel.includes('mark:'+ai)){
-          drag=mkMselDrag(msel,p); return;
-        }
-        /* member of a group? the whole group travels (Alt = just this one) */
-        if(!e.altKey&&annos[ai].g){
-          const keys=groupKeys(annos[ai].g);
-          if(keys.length>=2){ selectMark(ai); drag=mkMselDrag(keys,p); render(); refreshPieces(); return; }
-        }
-        selectMark(ai);
-        drag={kind:'moveAnno',i:ai,start:p,orig:{...annos[ai]},moved:false};
-        render(); refreshPieces(); return;
-      }
-      const fi=hitFrame(p);
-      if(fi>=0){
-        selectMark(fi);
-        drag=mkFrameDrag(fi,p);
-        render(); refreshPieces(); return;
-      }
-      /* Bug 2: image selection and drag */
-      const ii=hitImg(p);
-      if(ii>=0){
-        clearSel(); selectedImg=ii;   // order matters: clearSel() wipes selectedImg
-        drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
-        if(!window.__imgHintShown){ window.__imgHintShown=1;
-          toast('Drag the corners to resize — hold Shift to keep proportions. Del removes it.'); }
-        render(); return;
-      }
-      clearSel(); selectedImg=-1; selected=-1;
-      drag={kind:'marquee',a:p,b:p};
+      render(); refreshPieces(); return;
     }
+    const ii=hitImg(p);
+    if(ii>=0){
+      clearSel(); selectedImg=ii;   // order matters: clearSel() wipes selectedImg
+      drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
+      if(!window.__imgHintShown){ window.__imgHintShown=1;
+        toast('Drag the corners to resize — hold Shift to keep proportions. Del removes it.'); }
+      render(); return;
+    }
+    clearSel(); selectedImg=-1; selected=-1;
+    drag={kind:'marquee',a:p,b:p};
     render(); refreshPieces(); return;
   }
   if(tool==='slice'||tool==='box'||tool==='arrow'){ drag={kind:tool,a:p,b:p}; return; }
@@ -1489,6 +1502,7 @@ canvas.addEventListener('pointermove',e=>{
     }
   }
   else if(drag.kind==='moveMsel'){
+    if(!drag.origs.length){ drag=null; return; }   // fully stale selection — abort safely (audit fix)
     const dx=p.x-drag.start.x, dy=p.y-drag.start.y;
     if(!drag.moved&&Math.hypot(dx,dy)>3/view.s){ drag.moved=true;
       undoStack.push({k:'boardSnap',slices:drag.snap.slices,annos:drag.snap.annos,groups:drag.snap.groups}); }
@@ -2117,6 +2131,7 @@ textEntry.addEventListener('blur',()=>commitTextEntry(true));
 /* ---------------- edit ops ---------------- */
 function undo(){
   const u=undoStack.pop(); if(!u)return;
+  msel=[];   // indices can't be trusted after any structural restore (audit fix 3)
   if(u.k==='slice')slices.pop();
   else if(u.k==='anno')annos.pop();
   else if(u.k==='delSlice')slices.splice(u.i,0,u.s);
@@ -2132,6 +2147,7 @@ function undo(){
 }
 /* Bug 1 fix — Del key honours all selection types, not just slices */
 function delSelected(){
+  msel=[];   // deletions shift indices (audit fix 3)
   if(sel.kind==='group'){
     const gr=groups[sel.i]; if(!gr)return; boardSnap();
     annos=annos.filter(a=>a.g!==gr.id); slices=slices.filter(s=>s.g!==gr.id);
@@ -2179,7 +2195,7 @@ $('btnUndo').onclick=undo;
 $('btnDel').onclick=delSelected;
 $('btnDup').onclick=dupSelected;
 $('btnFit').onclick=fitView;
-$('btnClear').onclick=()=>{ if(annos.length){undoStack.push({k:'clear',prev:annos.slice()});annos=[];sync();} };
+$('btnClear').onclick=()=>{ msel=[]; if(annos.length){undoStack.push({k:'clear',prev:annos.slice()});annos=[];sync();} };
 $('chkOriginal').onchange=render;
 /* ====== floating panel manager ====== */
 const PANEL_TOP=()=>{ const t=$('tools'); return (t?t.getBoundingClientRect().bottom:96)+8; };
@@ -2332,7 +2348,7 @@ function buildCtxItems(p,e){
     items.push({label:'Rename this screen…',action:()=>{ openText(e,p,fi); }});
     items.push({label:'Duplicate',action:()=>selDup.click()});
     items.push('-');
-    items.push({label:'Delete screen — widgets stay',action:()=>{ annos.splice(fi,1); clearSel(); sync(); },danger:true});
+    items.push({label:'Delete screen — widgets stay',action:()=>{ annos.splice(fi,1); msel=[]; clearSel(); sync(); },danger:true});
     return items;
   }
   if(ai>=0){
