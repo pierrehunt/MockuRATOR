@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.30.0</span>
+    <span class="ver" id="verBadge">v1.30.1</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -622,6 +622,10 @@ a.plainlink:hover{color:#137059}
           <tr><td class="k">Export PNG</td><td>The annotated board as an image, copied to clipboard</td></tr>
           <tr><td class="k">Export Package</td><td>ZIP: PNG + an AI-readable report.md + reload JSON</td></tr>
         </table>
+        <div class="railTip small" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px;text-align:center">
+          Free forever · MIT · built by Pierre Hunt (MediaOrb)<br>
+          Saved you some time? <a href="https://ko-fi.com/mockurator" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;text-decoration:none">☕🍺 Buy me a coffee or a beer on Ko-fi</a>
+        </div>
       </div>
     </div>
     <input id="textEntry" placeholder="Type, then Enter">
@@ -750,7 +754,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.30.0', APP_BUILD='2026-08-14';
+const APP_VERSION='1.30.1', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;

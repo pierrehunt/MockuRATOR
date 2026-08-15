@@ -1,6 +1,6 @@
 <p align="center"><img src="mockurator-logo.png" width="620" alt="MockuRATOR — Slice it. Mark it. Send it."></p>
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-17%20suites%20green-2ea44f)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) ![Single file](https://img.shields.io/badge/single%20file-no%20deps-blue) ![Tests](https://img.shields.io/badge/tests-19%20suites%20green-2ea44f)
 
 <p align="center">
   <a href="https://pierrehunt.github.io/MockuRATOR/"><img src="https://img.shields.io/badge/🌐%20Open%20in%20browser-no%20install%20needed-0f5c4e?style=for-the-badge" alt="Open in browser"></a>
@@ -28,6 +28,12 @@ Every Export Package is one zip holding three files with a taught reading order:
 **Why not Jam / Marker / Excalidraw / Balsamiq?** They're good — at their organ. Jam captures console logs but ships them to a per-seat cloud. Excalidraw is a magnificent free canvas with no capture, telemetry, or spec output. Balsamiq rents rectangles plus metered AI credits. MockuRATOR is the whole organism, **without authority**: single file, works from file://, everything stays on your machine, no server even exists. Made *with* AI, *for* working with AI.
 
 *Built by Pierre Hunt × Claude.*
+
+## ☕ Support
+
+MockuRATOR is free forever — no account, no server, no catch. If it saves you time, a coffee (or a beer) is massively appreciated:
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee%20%2F%20beer-ff5e5b?logo=kofi&logoColor=white)](https://ko-fi.com/mockurator)
 
 ## Why
 
@@ -120,6 +126,20 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.30.1** — ☕ Support: the ? overlay credits the author and links Ko-fi (new tab); README gains a Support section and a trademark note (code MIT, names reserved); repo hygiene — `.gitignore` added, private working docs removed from the shipped set; changelog backfilled for 1.26.2–1.30.0 (a silent packaging slip had frozen it at 1.26.1)
+- **1.30.0** — **Slice is an intent, not a guess.** Since v1.0 the first pasted image auto-armed the Slice tool — right when slicing was the only story, wrong ever since images became placeable assets. Images now land in **Move**, auto-selected with handles; the toast teaches "Press S to slice sections out of it." A source-level tripwire in the tape keeps the guess retired
+- **1.29.3** — The "phantom third image" solved: lassos were running with **Slice** active, cutting crops. Slice now forgives the instinct — a drag starting on the empty desk becomes a select-lasso; starting ON a screenshot still cuts
+- **1.29.2** — **The selection is an entity.** Marquee includes frames and images; images join Ctrl-click multi-select, drag with the set, and align; a frame in a moving selection auto-carries its contents (deduped). Lasso a whole flow, drag once, everything travels
+- **1.29.1** — Multi-select/group drag repaired against an external code audit: rigid-drag outranks solo in every pointer path (Alt opts out); hit order matches visual stacking; slice reorders remap selection keys; undo/delete/clear reset the selection; new `mseltest.js` locks all seven audit scenarios
+- **1.29.0** — Selections and groups move as one: drag any member and the set travels (Alt = solo); screens Ctrl-clickable for bulk move/align; first multi-select shows a one-time teaching hint
+- **1.28.5** — Items tamed: starter layouts drop inside a device frame; multi-select outlines on canvas; the Items list fills a resized panel; collapsible hierarchy — screens and groups fold their members under a ▸ count
+- **1.28.4** — Image layering done right: bring-to-front lifts an image above marks and widgets (send-to-back returns it); layer + resized dimensions survive save/load; panels de-overlap at startup and after mode switches
+- **1.28.3** — Dark & Katana themes: panels, menus, and modals stay light paper cards on the dark desk; header chrome goes dark-on-light; active tool uses the theme accent. Image z-order works, with slice index remapping and undo
+- **1.28.2** — Image resize actually resizes (the bitmap now draws at its rect in render and export); slicing a resized screenshot maps to source pixels; images list in the Items panel with thumbnails
+- **1.28.1** — Image re-selection fixed (a select-then-clear ordering bug wiped the selection in the same click); regression locks it
+- **1.28.0** — The finishing four: magnetic panels (12px snap to each other and screen edges); clean start (panel positions/sizes reset each load); working image corner-resize with **Shift = proportional**; a startup chooser — MockuRATOR or MockuFRAME — with remember-my-choice
+- **1.27.x** — The floating-panel era: side rails removed — six draggable, resizable, colour-coded panels with header launcher pills; right-click context menus in both modes; **THE SINGLE ESCAPE AUTHORITY** (one capture-phase handler, a strict priority ladder, its own 23-assertion contract suite after Esc broke five times); SVG alignment icons + bring-front/send-back; snap toggle (Ctrl+G, checkbox, teal grid when on); header compacted
+- **1.26.2** — Group adoption: grow an existing group — select its row, Ctrl-click more items, Add
 - **1.26.1** — Three fixes: grouping alignment bar no longer bursts out of the rail (column stack, full-width); Esc closes the ? overlay reliably (overlay takes focus on open, handles its own Esc keydown); **Export conscience modal** — Export Package now shows a `⚠ UX conscience check` modal listing all guide-rail findings with "Fix them first" / "Export anyway" choices, instead of a dismissible toast
 - **1.26.0** — Floating draggable **Selected editor**: the item editor lifts off the panel into a movable card (teal drag handle, ✕ close, position remembered); Del key now honours every selection type — marks, groups, frames, and pieces; pasted/opened images auto-select on arrival, are clickable in Move to drag or reposition, and can be deleted with Del; image moves carry their slices; Esc also clears a selected image
 - **1.25.5** — Sticky chip mode is now intentional: armed chip stays armed across placements; **Esc** releases it back to Move (toast + hintBar both tell you so); chip and frame toasts say "Esc when done"
@@ -174,3 +194,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 ## License
 
 [MIT](LICENSE) — use it, fork it, ship it.
+
+## Names
+
+The code is MIT — fork away. The names **MockuRATOR™, MockuFRAME™, MockuLog™, MockuGrab™** and their logos belong to Pierre Hunt (MediaOrb) and may not be used for derived or competing products without permission.
