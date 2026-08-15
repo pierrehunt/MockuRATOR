@@ -184,7 +184,12 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 .panClose{border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
   border-radius:4px;padding:1px 6px;font-size:14px;line-height:1.4;flex-shrink:0}
 .panClose:hover{background:rgba(255,255,255,.32)}
-.panBody{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:500px}
+.panBody{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;min-height:0}
+.floatPanel{max-height:none}
+.panResize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:2}
+.panResize::after{content:'';position:absolute;right:3px;bottom:3px;width:8px;height:8px;
+  border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);opacity:.5;border-radius:0 0 2px 0}
+.panResize:hover::after{opacity:1;border-color:var(--accent)}
 /* launcher pills */
 .lpill{padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:600;cursor:pointer;
   border:1px solid transparent;display:flex;align-items:center;gap:5px;white-space:nowrap;
@@ -332,7 +337,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.27.3</span>
+    <span class="ver" id="verBadge">v1.27.4</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -630,6 +635,9 @@ a.plainlink:hover{color:#137059}
   </div>
   <div class="panBody">
     <div class="railTip small">Pick a chip, drag on the canvas or click for default size. Double-click to rename; its note says what it does.</div>
+    <label class="railTip small" style="display:flex;gap:6px;align-items:center;cursor:pointer;background:#f4faf7;border:1px solid #bfe3d6;border-radius:7px;padding:5px 8px">
+      <input type="checkbox" id="snapChk" checked> <b>Snap to grid</b> — 8px · Ctrl+G
+    </label>
     <div id="wchips"></div>
     <div class="railTip small" style="margin-top:6px;font-weight:600">Screens (device frames):</div>
     <div class="bmrow" id="framechips">
@@ -675,7 +683,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.27.3', APP_BUILD='2026-08-14';
+const APP_VERSION='1.27.4', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -898,8 +906,8 @@ function render(){
     const W=canvas.width/dpr, H=canvas.height/dpr, gs=24;
     const x0=Math.floor((-view.x/view.s)/gs)*gs, y0=Math.floor((-view.y/view.s)/gs)*gs;
     const x1=(W-view.x)/view.s, y1=(H-view.y)/view.s;
-    ctx.fillStyle='rgba(35,34,28,.26)';
-    const d=Math.max(1.5,1.8/view.s);
+    ctx.fillStyle=snapOn?'rgba(15,110,86,.35)':'rgba(35,34,28,.18)';
+    const d=Math.max(1.8,2.2/view.s);
     for(let gx=x0;gx<=x1;gx+=gs)for(let gy=y0;gy<=y1;gy+=gs)ctx.fillRect(gx,gy,d,d);
   }
   /* selected raw image ring */
@@ -2036,6 +2044,26 @@ function updateLauncherPills(){
       };
       handle.addEventListener('pointermove',mv); handle.addEventListener('pointerup',up);
     });
+    const grip=document.createElement('div'); grip.className='panResize'; grip.title='Drag to resize';
+    el.appendChild(grip);
+    try{ const s=JSON.parse(localStorage.getItem('mockurator:pansize:'+def.key));
+      if(s){ el.style.width=s.w+'px'; if(s.h)el.style.height=s.h+'px'; } }catch(e){}
+    grip.addEventListener('pointerdown',e=>{
+      e.stopPropagation(); e.preventDefault();
+      grip.setPointerCapture(e.pointerId);
+      const r=el.getBoundingClientRect(), sx=e.clientX, sy=e.clientY, sw=r.width, sh=r.height;
+      const mv=ev=>{
+        const w=Math.max(220,Math.min(640,sw+(ev.clientX-sx)));
+        const h=Math.max(140,Math.min(window.innerHeight-60,sh+(ev.clientY-sy)));
+        el.style.width=w+'px'; el.style.height=h+'px';
+      };
+      const up=()=>{
+        grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up);
+        const r2=el.getBoundingClientRect();
+        try{ localStorage.setItem('mockurator:pansize:'+def.key,JSON.stringify({w:Math.round(r2.width),h:Math.round(r2.height)})); }catch(e){}
+      };
+      grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up);
+    });
   });
 })();
 let panelOpen=true;
@@ -2925,9 +2953,13 @@ function snapv(v){ return (wfMode&&snapOn) ? Math.round(v/WF_GRID)*WF_GRID : v; 
 function toggleSnap(){
   snapOn=!snapOn;
   try{ localStorage.setItem('mockurator:snap',snapOn?'1':'0'); }catch(e){}
+  const chk=$('snapChk'); if(chk)chk.checked=snapOn;
   toast(snapOn?'Snap on — widgets stick to the 8px grid.':'Snap off — free placement.');
   if(window.refreshChips)refreshChips();
+  render();
 }
+$('snapChk').onchange=()=>{ if($('snapChk').checked!==snapOn)toggleSnap(); };
+$('snapChk').checked=snapOn;
 function setWfMode(on,announce){
   wfMode=!!on;
   document.body.classList.toggle('wfmode',wfMode);
