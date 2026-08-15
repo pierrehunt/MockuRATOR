@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.30.1</span>
+    <span class="ver" id="verBadge">v1.30.2</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -566,6 +566,9 @@ a.plainlink:hover{color:#137059}
           </div>
         </div>
         <label id="startRemember"><input type="checkbox" id="startRememberChk"> Remember my choice — don't ask again</label>
+        <div class="railTip small" style="margin-top:14px;text-align:center;border-top:1px solid var(--line);padding-top:10px">
+          Free forever · no account, no server · <a href="https://ko-fi.com/mockurator" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;text-decoration:none">☕🍺 Buy me a coffee or a beer</a>
+        </div>
       </div>
     </div>
     <div id="conscienceModal" style="display:none">
@@ -754,7 +757,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.30.1', APP_BUILD='2026-08-14';
+const APP_VERSION='1.30.2', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;

@@ -126,6 +126,7 @@ The logo combines "Mock" from mockups with the exaggerated 1980s/90s cartoon-mac
 
 ## Changelog
 
+- **1.30.2** — ☕ The startup chooser gains the Ko-fi line too — "Free forever · no account, no server · Buy me a coffee or a beer" — the one screen everyone sees
 - **1.30.1** — ☕ Support: the ? overlay credits the author and links Ko-fi (new tab); README gains a Support section and a trademark note (code MIT, names reserved); repo hygiene — `.gitignore` added, private working docs removed from the shipped set; changelog backfilled for 1.26.2–1.30.0 (a silent packaging slip had frozen it at 1.26.1)
 - **1.30.0** — **Slice is an intent, not a guess.** Since v1.0 the first pasted image auto-armed the Slice tool — right when slicing was the only story, wrong ever since images became placeable assets. Images now land in **Move**, auto-selected with handles; the toast teaches "Press S to slice sections out of it." A source-level tripwire in the tape keeps the guess retired
 - **1.29.3** — The "phantom third image" solved: lassos were running with **Slice** active, cutting crops. Slice now forgives the instinct — a drag starting on the empty desk becomes a select-lasso; starting ON a screenshot still cuts
