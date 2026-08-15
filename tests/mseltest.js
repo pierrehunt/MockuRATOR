@@ -113,6 +113,28 @@ ok('entity: the flow arrow moved with the set',w.eval("annos[3].x1===1320&&annos
 ok('entity: the image moved too',w.eval("images[0].x===1100&&images[0].y===1500"));
 ok('entity: no double-move of the frame-contained widget',w.eval("annos[1].x-1040===100"));
 
+/* ── two images: lasso in Move, drag together (v1.29.3) ── */
+w.eval(`
+  annos=[]; slices=[]; groups=[]; msel=[]; clearSel(); selectedImg=-1;
+  images=[
+    {img:{naturalWidth:100,naturalHeight:80},dataURL:'a',x:2000,y:2000,w:200,h:150},
+    {img:{naturalWidth:100,naturalHeight:80},dataURL:'b',x:2300,y:2000,w:200,h:150}
+  ];
+  setTool('move'); view={s:1,x:60,y:60};
+`);
+pt('pointerdown',1950,1950); pt('pointermove',2600,2250); pt('pointerup',2600,2250);
+ok('two images: lasso selects both',w.eval("msel.includes('img:0')&&msel.includes('img:1')"));
+pt('pointerdown',2100,2075); pt('pointermove',2200,2175); pt('pointerup',2200,2175);
+ok('two images: dragging one moves both',w.eval("images[0].x===2100&&images[1].x===2400&&images[0].y===2100"));
+
+/* ── Slice tool: desk-start drag selects instead of cutting (the "phantom third image" bug) ── */
+w.eval("msel=[]; clearSel(); selectedImg=-1; setTool('slice');");
+pt('pointerdown',2050,2050); pt('pointermove',2650,2350); pt('pointerup',2650,2350);   // starts on the desk, sweeps both images
+ok('slice tool: desk-start lasso SELECTS the images',w.eval("msel.includes('img:0')&&msel.includes('img:1')"));
+ok('slice tool: desk-start lasso cuts NO slice',w.eval("slices.length===0"));
+pt('pointerdown',2150,2150); pt('pointermove',2250,2220); pt('pointerup',2250,2220);   // starts ON image 0 — real slicing
+ok('slice tool: starting on a screenshot still cuts',w.eval("slices.length===1"));
+
 console.log(out.join('\n'));
 if(errs.length)console.log('ERRORS: '+errs[0]);
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL MSEL-DRAG TESTS PASSED':'SOME FAILED');

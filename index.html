@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.29.2</span>
+    <span class="ver" id="verBadge">v1.29.3</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.29.2', APP_BUILD='2026-08-14';
+const APP_VERSION='1.29.3', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1440,7 +1440,15 @@ canvas.addEventListener('pointerdown',e=>{
     drag={kind:'marquee',a:p,b:p};
     render(); refreshPieces(); return;
   }
-  if(tool==='slice'||tool==='box'||tool==='arrow'){ drag={kind:tool,a:p,b:p}; return; }
+  if(tool==='slice'){
+    /* a slice must start ON a screenshot — starting on the empty desk means you're selecting */
+    if(hitImg(p)<0&&hitSlice(p)<0){
+      clearSel(); selectedImg=-1; selected=-1;
+      drag={kind:'marquee',a:p,b:p}; return;
+    }
+    drag={kind:'slice',a:p,b:p}; return;
+  }
+  if(tool==='box'||tool==='arrow'){ drag={kind:tool,a:p,b:p}; return; }
   if(tool==='pen'){ drag={kind:'pen',pts:[p]}; return; }
   if(tool==='widget'&&pendingKind){ drag={kind:'wdraw',a:p,b:p}; return; }
   if(tool==='text'){ e.preventDefault(); openText(e,p); return; }
