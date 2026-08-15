@@ -135,6 +135,10 @@ ok('slice tool: desk-start lasso cuts NO slice',w.eval("slices.length===0"));
 pt('pointerdown',2150,2150); pt('pointermove',2250,2220); pt('pointerup',2250,2220);   // starts ON image 0 — real slicing
 ok('slice tool: starting on a screenshot still cuts',w.eval("slices.length===1"));
 
+/* ── Slice is an INTENT (v1.30.0): pasting an image must never auto-arm Slice ── */
+ok('paste never auto-arms Slice (intent stays with the user)',
+   !/images\.length===1\)\{setTool\('slice'\)/.test(src) && /setTool\('move'\);\s*\/\/ Slice is an INTENT/.test(src));
+
 console.log(out.join('\n'));
 if(errs.length)console.log('ERRORS: '+errs[0]);
 console.log(out.every(l=>l.startsWith('PASS'))?'ALL MSEL-DRAG TESTS PASSED':'SOME FAILED');
