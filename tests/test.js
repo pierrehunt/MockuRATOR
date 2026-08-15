@@ -28,31 +28,22 @@ const ok = (name, cond) => out.push((cond?'PASS':'FAIL')+'  '+name);
 
 ok('page loads with no runtime errors', errors.length===0);
 const AV2=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];ok('version badge reads v'+AV2,d.querySelector('.ver').textContent==='v'+AV2);
-ok('left rail exists', !!$('railL'));
-ok('work panels default LEFT, tools and recents RIGHT',
-   ['secNotes','secPieces'].every(id=>$('railL').contains($(id))) &&
-   ['secBm','secLog','secRecent'].every(id=>$('railR').contains($(id))));
-ok('both rails visible with the split default',
-   $('railL').style.display==='flex' && $('railR').style.display==='flex');
-
-d.querySelector('#secNotes .flip').click();
-ok('flip button moves Notes to the right rail', $('railR').contains($('secNotes')));
-ok('right rail appears once it has content', $('railR').style.display==='flex');
-ok('layout choice persisted to browser storage',
-   (dom.window.localStorage.getItem('mockurator:layout')||'').includes('"secNotes":"R"'));
+ok('floating panels exist in DOM',!!$('panNotes')&&!!$('panItems')&&!!$('panCapture')&&!!$('panWidgets')&&!!$('panRails'));
+ok('panel launcher pills present in header',!!$('lp-notes')&&!!$('lp-items')&&!!$('lp-rails'));
+ok('Notes panel shows on load',$('panNotes').style.display!=='none');
+ok('Items panel shows on load',$('panItems').style.display!=='none');
 
 $('btnPanel').click();
-ok('Panel button hides both rails', $('railL').style.display==='none' && $('railR').style.display==='none');
+ok('Panel button hides all floating panels',$('panNotes').style.display==='none'&&$('panItems').style.display==='none');
 $('btnPanel').click();
-ok('Panel button brings them back', $('railL').style.display==='flex');
+ok('Panel button restores floating panels',$('panNotes').style.display!=='none');
 
 ok('autosave is active (storage available)', $('autosaveNote').textContent.includes('autosave'));
 ok('recent-boards list renders its empty state', $('recent').textContent.includes('autosave'));
 ok('pieces list renders its empty state', $('pieces').textContent.includes('Cut a section'));
 ok('bookmarklet link is armed', $('bmLink').href.startsWith('javascript:'));
-ok('dividers present for drag-resize', !!$('divL') && !!$('divR'));
+ok('context menu element present', !!$('ctxMenu'));
 ok('Export Package button present', !!$('btnPackage'));
-ok('report builder produces markdown', typeof dom.window.buildReport==='undefined' ? true : true);
 
 console.log(out.join('\n'));
 if(errors.length) console.log('\nERRORS:\n'+errors.join('\n'));

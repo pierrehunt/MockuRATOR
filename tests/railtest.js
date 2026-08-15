@@ -22,7 +22,7 @@ const blueContrast=w.eval("contrastOnWhite('#2563eb')");
 ok('blue contrast on white > 4:1',blueContrast>4);
 
 // --- 2. rails section present in HTML ---
-ok('guide rails section present',!!$('secRails'));
+ok('guide rails panel present',!!$('panRails')&&!!$('railsMaster'));
 ok('rails master checkbox present',!!$('railsMaster'));
 ok('railList div present',!!$('railList'));
 ok('railFinds div present',!!$('railFinds'));

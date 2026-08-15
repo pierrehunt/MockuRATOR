@@ -8,7 +8,7 @@ const out=[];const ok=(n,c)=>out.push((c?'PASS':'FAIL')+'  '+n);
 ok('loads clean',errs.length===0);
 const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
-ok('MockuLog section in the panel',!!$('secLog'));
+ok('MockuLog bookmarklet in Capture panel',!!$('bmLogLink')&&!!$('panCapture'));
 ok('MockuLog bookmarklet armed',$('bmLogLink').href.startsWith('javascript:'));
 
 // Fire the recorder inside this very page and feed it errors

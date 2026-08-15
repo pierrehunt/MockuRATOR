@@ -10,7 +10,7 @@ const pt=(type,wx,wy)=>canvas.dispatchEvent(new w.MouseEvent(type,{clientX:wx+60
 
 const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
-ok('palette section present',!!$('secWidgets'));
+ok('widget palette panel present',!!$('panWidgets')&&!!$('wchips'));
 ok('19 widget+frame chips rendered',d.querySelectorAll('.wchip').length===19);
 
 // arm the Button chip, drag one onto the canvas

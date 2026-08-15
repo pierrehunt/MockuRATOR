@@ -162,20 +162,38 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
   opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;z-index:20}
 #toast.show{opacity:1}
 
-/* ---------- side rails ---------- */
-.rail{width:280px;flex:0 0 280px;background:var(--white);
-  overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:16px}
-#railR{border-left:1px solid var(--line)}
-#railL{border-right:1px solid var(--line)}
-.railSec h3 .flip{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:4px;
-  cursor:pointer;color:var(--muted);font-size:11px;padding:1px 6px}
-.railSec h3 .flip:hover{color:var(--ink);background:#f0eee6}
-.divider{flex:0 0 6px;cursor:col-resize;background:var(--line);opacity:.55}
-.divider:hover,.divider.active{background:var(--accent);opacity:1}
-#secPieces{flex:1;min-height:0;display:flex;flex-direction:column}
-.railSec h3{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600;
-  letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:baseline;gap:6px}
+/* ---------- side rails: hidden in floating-panel mode ---------- */
+.rail{display:none}
+.divider{display:none}
 .railTip{font-size:12px;color:var(--muted);margin:4px 0;line-height:1.45}
+/* ---------- floating panels ---------- */
+.floatPanel{position:fixed;width:260px;background:var(--white);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:55;display:none;
+  flex-direction:column;overflow:hidden}
+.panHandle{display:flex;align-items:center;gap:7px;padding:7px 10px;
+  cursor:grab;user-select:none;border-radius:11px 11px 0 0;
+  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff}
+.panHandle:active{cursor:grabbing}
+.panTitle{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panClose{border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
+  border-radius:4px;padding:1px 6px;font-size:14px;line-height:1.4;flex-shrink:0}
+.panClose:hover{background:rgba(255,255,255,.32)}
+.panBody{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:500px}
+/* launcher pills */
+.lpill{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;
+  border:1px solid transparent;display:flex;align-items:center;gap:5px;white-space:nowrap;
+  background:rgba(255,255,255,.06);color:#9a978a;transition:opacity .15s}
+.lpill:hover{background:rgba(255,255,255,.12);color:#efede4}
+.lpill.on{color:#fff;opacity:1}
+.lpill .ldot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+/* context menu */
+#ctxMenu{position:fixed;z-index:200;background:var(--white);border:1px solid var(--line);
+  border-radius:10px;padding:4px;min-width:170px;box-shadow:0 8px 28px rgba(0,0,0,.22);display:none}
+.ctx-item{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink2)}
+.ctx-item:hover{background:#f0eee6;color:var(--ink)}
+.ctx-item.danger{color:#dc2626}
+.ctx-item.danger:hover{background:#fef2f2}
+.ctx-sep{height:1px;background:var(--line);margin:3px 0}
 #notes{width:100%;height:150px;resize:vertical;border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff}
 #pieces{display:flex;flex-direction:column;gap:3px;overflow-y:auto;flex:1;min-height:50px}
 .piece{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;
@@ -308,11 +326,18 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.26.1</span>
+    <span class="ver" id="verBadge">v1.27.0</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
-  <button class="hbtn" id="btnPanel" title="Show or hide the side panel">Panel</button>
+  <button class="hbtn" id="btnPanel" title="Show or hide all panels">Panels</button>
+  <div id="panLauncher" style="display:flex;gap:3px;align-items:center">
+    <button class="lpill" id="lp-notes"   onclick="togglePanel('notes')"  ><span class="ldot" style="background:#185fa5"></span>Notes</button>
+    <button class="lpill" id="lp-items"   onclick="togglePanel('items')"  ><span class="ldot" style="background:#ba7517"></span>Items</button>
+    <button class="lpill" id="lp-capture" onclick="togglePanel('capture')" data-mode="annotate"><span class="ldot" style="background:#534ab7"></span>Capture</button>
+    <button class="lpill" id="lp-widgets" onclick="togglePanel('widgets')" data-mode="wireframe" style="display:none"><span class="ldot" style="background:#3b6d11"></span>Widgets</button>
+    <button class="lpill" id="lp-rails"   onclick="togglePanel('rails')"  ><span class="ldot" style="background:#993c1d"></span>Rails</button>
+  </div>
   <span class="spacer"></span>
   <button class="hbtn" id="btnPreview" title="Preview the board at desktop, tablet, and phone scale">👁 Preview</button>
   <button class="hbtn" id="btnTheme" title="Cycle colour theme — easier on the eyes">🎨</button>
@@ -353,8 +378,6 @@ a.plainlink:hover{color:#137059}
 </div>
 
 <div id="main">
-  <aside id="railL" class="rail"></aside>
-  <div class="divider" id="divL"></div>
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="secSel" style="display:none">
@@ -513,105 +536,126 @@ a.plainlink:hover{color:#137059}
     <div id="toast"></div>
   </div>
 
-  <div class="divider" id="divR"></div>
-  <aside id="railR" class="rail">
+</div>
 
-
-    <div class="railSec" id="secNotes">
-      <h3>Overall notes <button class="flip" data-sec="secNotes" title="Move to the other side">⇄</button></h3>
-      <div class="micWrap">
-        <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary."></textarea>
-        <input id="pageURL" placeholder="Page URL / route (optional — maps the screenshot to code)" style="width:100%;margin-top:6px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12.5px;background:var(--white);color:var(--ink)">
-        <button class="micBtn" data-target="notes" title="Dictate — click, speak, click again to stop">🎤</button>
-      </div>
-      <div class="railTip small">For a note on a specific item, click it and use the note box above.</div>
+<!-- ====== floating panels (position:fixed, draggable) ====== -->
+<div class="floatPanel" id="panNotes">
+  <div class="panHandle" style="background:#185fa5">
+    <span class="panTitle">📋 Notes</span><button class="panClose" onclick="togglePanel('notes')">✕</button>
+  </div>
+  <div class="panBody">
+    <div class="micWrap">
+      <textarea id="notes" placeholder="Overall context for the whole board — build/version, a one-line summary." style="width:100%;height:100px;resize:vertical;border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff"></textarea>
+      <button class="micBtn" data-target="notes" title="Dictate">🎤</button>
     </div>
-
-    <div class="railSec" id="secPieces">
-      <h3>Items <span id="pieceCount" class="railTip small"></span> <button class="flip" data-sec="secPieces" title="Move to the other side">⇄</button></h3>
-      <div id="groupBar" style="display:none">
-        <button class="mini primaryish" id="btnGroup">Group selected</button>
-        <button class="mini" id="btnMselClear">Clear selection</button>
-        <div id="alignBar">
-          <button class="mini" id="alL" title="Align left edges">⇤</button>
-          <button class="mini" id="alC" title="Align horizontal centers">↔</button>
-          <button class="mini" id="alR" title="Align right edges">⇥</button>
-          <button class="mini" id="alT" title="Align top edges">⤒</button>
-          <button class="mini" id="alM" title="Align vertical centers">↕</button>
-          <button class="mini" id="alB" title="Align bottom edges">⤓</button>
-          <button class="mini" id="dsH" title="Distribute horizontally (equal gaps)">⋯</button>
-          <button class="mini" id="dsV" title="Distribute vertically (equal gaps)">⋮</button>
-        </div>
-      </div>
-      <div id="pieces"></div>
-      <div class="railTip small">Ctrl-click rows to select several — the item you already have selected counts automatically — then Group. To grow a group: click its row, Ctrl-click more items, then Add.</div>
-    </div>
-
-    <div class="railSec" id="secWidgets" data-mode="wireframe">
-      <h3>Widgets <button class="flip" data-sec="secWidgets" title="Move to the other side">⇄</button></h3>
-      <div class="railTip small">Pick a chip, drag on the canvas to place it — or just click for a default size. Double-click to rename; its note says what it <i>does</i> — the report writes the build spec.</div>
-      <div id="wchips"></div>
-      <div class="railTip small" style="margin-top:8px"><b>Screens (device frames):</b></div>
-      <div class="bmrow" id="framechips">
-        <button class="mini" data-f="phone">📱 Phone</button>
-        <button class="mini" data-f="tablet">📲 Tablet</button>
-        <button class="mini" data-f="desktop">🖥️ Desktop</button>
-      </div>
-      <div class="railTip small">A frame is a screen: widgets inside belong to it, arrows between screens become <b>user flows</b>, and the report writes a per-screen build spec. Drag its name or border to move the whole screen.</div>
-      <div class="railTip small" style="margin-top:8px"><b>Starter layouts:</b></div>
-      <div class="bmrow">
-        <button class="mini" id="presetLogin">Login</button>
-        <button class="mini" id="presetDash">Dashboard</button>
-        <button class="mini" id="presetSettings">Settings</button>
-      </div>
-      <div class="railTip small" style="margin-top:8px"><b>Template packs (multi-screen):</b></div>
-      <div class="bmrow" style="flex-wrap:wrap">
-        <button class="mini" id="tplAuth">Auth ×3</button>
-        <button class="mini" id="tplSaas">SaaS shell</button>
-        <button class="mini" id="tplShop">Shop ×4</button>
-        <button class="mini" id="tplLanding">Landing</button>
-        <button class="mini" id="tplPricing">Pricing</button>
-      </div>
-      <div class="railTip small">Packs drop whole screen sets with the flows already wired. Any <b>mockurator-template</b> JSON dropped on the canvas inserts the same way — share packs as plain files.</div>
-    </div>
-
-    <div class="railSec" id="secRails" data-mode="wireframe">
-      <h3>Guide rails — UX conscience <button class="flip" data-sec="secRails" title="Move to the other side">⇄</button></h3>
-      <label class="railTip small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="railsMaster" checked> Rails on — nudges here, conscience in the report</label>
-      <div id="railList"></div>
-      <div id="railFinds"></div>
-    </div>
-
-    <div class="railSec" id="secSnap" data-mode="annotate">
-      <h3>Companion — Snap · Grab · Log <button class="flip" data-sec="secSnap" title="Move to the other side">⇄</button></h3>
-      <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a><button class="mini info" data-tool="snap" title="What is this + how to install">ⓘ</button></div>
-      <div class="railTip small">Full page · element grab · one-click log — right-click anywhere.</div>
-    </div>
-
-    <div class="railSec" id="secBm" data-mode="annotate">
-      <h3>Capture bookmarklet <button class="flip" data-sec="secBm" title="Move to the other side">⇄</button></h3>
-      <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a><button class="mini info" data-tool="grab" title="How it works + copy buttons">ⓘ</button></div>
-      <div class="railTip small">Drag to your bookmarks bar — then click any element on any page.</div>
-    </div>
-
-    <div class="railSec" id="secLog" data-mode="annotate">
-      <h3>MockuLog — F12 without F12 <button class="flip" data-sec="secLog" title="Move to the other side">⇄</button></h3>
-      <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a><button class="mini info" data-tool="log" title="The full guide + copy buttons">ⓘ</button></div>
-      <div class="railTip small">Records errors & failed requests on any page — no F12, ever.</div>
-    </div>
-
-    <div class="railSec" id="secRecent">
-      <h3>Recent boards <button class="flip" data-sec="secRecent" title="Move to the other side">⇄</button></h3>
-      <div id="autosaveNote" class="railTip"></div>
+    <input id="pageURL" placeholder="Page URL / route (optional)" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;background:var(--white);color:var(--ink)">
+    <div class="railTip small" style="margin-top:2px">For a note on a specific item, click it and use the note box above.</div>
+    <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px">
+      <div class="railTip small" style="margin-bottom:4px;font-weight:600">Recent boards</div>
+      <div id="autosaveNote" class="railTip" style="font-size:11px"></div>
       <div id="recent"></div>
     </div>
-  </aside>
+  </div>
+</div>
+
+<div class="floatPanel" id="panItems">
+  <div class="panHandle" style="background:#ba7517">
+    <span class="panTitle">🗂 Items <span id="pieceCount" style="font-weight:400;opacity:.8"></span></span>
+    <button class="panClose" onclick="togglePanel('items')">✕</button>
+  </div>
+  <div class="panBody" style="padding:6px 8px">
+    <div id="groupBar" style="display:none">
+      <button class="mini primaryish" id="btnGroup">Group selected</button>
+      <button class="mini" id="btnMselClear">Clear selection</button>
+      <div id="alignBar">
+        <button class="mini" id="alL" title="Align left edges">⇤</button>
+        <button class="mini" id="alC" title="Align horizontal centers">↔</button>
+        <button class="mini" id="alR" title="Align right edges">⇥</button>
+        <button class="mini" id="alT" title="Align top edges">⤒</button>
+        <button class="mini" id="alM" title="Align vertical centers">↕</button>
+        <button class="mini" id="alB" title="Align bottom edges">⤓</button>
+        <button class="mini" id="dsH" title="Distribute horizontally">⋯</button>
+        <button class="mini" id="dsV" title="Distribute vertically">⋮</button>
+      </div>
+    </div>
+    <div id="pieces" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
+    <div class="railTip small" style="font-size:10px;margin-top:4px">Ctrl-click rows to multi-select → Group. Right-click any item for quick actions.</div>
+  </div>
+</div>
+
+<div class="floatPanel" id="panCapture" data-mode="annotate">
+  <div class="panHandle" style="background:#534ab7">
+    <span class="panTitle">📡 Capture</span><button class="panClose" onclick="togglePanel('capture')">✕</button>
+  </div>
+  <div class="panBody">
+    <div class="railTip small" style="font-weight:600;font-size:11px">🧰 Companion extension</div>
+    <div class="bmrow"><a class="bm" href="MockuRATOR-Companion.zip" download>🧰 Get the Companion</a><button class="mini info" data-tool="snap" title="What is this">ⓘ</button></div>
+    <div class="railTip small">Full page · element grab · one-click log — right-click anywhere.</div>
+    <div style="border-top:1px solid var(--line);padding-top:6px">
+      <div class="railTip small" style="font-weight:600;font-size:11px">📷 Capture bookmarklet</div>
+      <div class="bmrow"><a id="bmLink" class="bm" href="#">📷 MockuGrab</a><button class="mini info" data-tool="grab" title="How it works">ⓘ</button></div>
+      <div class="railTip small">Drag to bookmarks bar — click any element on any page.</div>
+    </div>
+    <div style="border-top:1px solid var(--line);padding-top:6px">
+      <div class="railTip small" style="font-weight:600;font-size:11px">🪲 MockuLog</div>
+      <div class="bmrow"><a id="bmLogLink" class="bm" href="#">🪲 MockuLog</a><button class="mini info" data-tool="log" title="The full guide">ⓘ</button></div>
+      <div class="railTip small">Records errors & failed requests — no F12, ever.</div>
+    </div>
+  </div>
+</div>
+
+<div class="floatPanel" id="panWidgets" data-mode="wireframe">
+  <div class="panHandle" style="background:#3b6d11">
+    <span class="panTitle">◻ Widgets</span><button class="panClose" onclick="togglePanel('widgets')">✕</button>
+  </div>
+  <div class="panBody">
+    <div class="railTip small">Pick a chip, drag on the canvas or click for default size. Double-click to rename; its note says what it does.</div>
+    <div id="wchips"></div>
+    <div class="railTip small" style="margin-top:6px;font-weight:600">Screens (device frames):</div>
+    <div class="bmrow" id="framechips">
+      <button class="mini" data-f="phone">📱 Phone</button>
+      <button class="mini" data-f="tablet">📲 Tablet</button>
+      <button class="mini" data-f="desktop">🖥️ Desktop</button>
+    </div>
+    <div class="railTip small">A frame is a screen — widgets inside belong to it, arrows between screens become user flows.</div>
+    <div class="railTip small" style="margin-top:6px;font-weight:600">Starter layouts:</div>
+    <div class="bmrow">
+      <button class="mini" id="presetLogin">Login</button>
+      <button class="mini" id="presetDash">Dashboard</button>
+      <button class="mini" id="presetSettings">Settings</button>
+    </div>
+    <div class="railTip small" style="margin-top:6px;font-weight:600">Template packs (multi-screen):</div>
+    <div class="bmrow" style="flex-wrap:wrap">
+      <button class="mini" id="tplAuth">Auth ×3</button>
+      <button class="mini" id="tplSaas">SaaS shell</button>
+      <button class="mini" id="tplShop">Shop ×4</button>
+      <button class="mini" id="tplLanding">Landing</button>
+      <button class="mini" id="tplPricing">Pricing</button>
+    </div>
+    <div class="railTip small" style="font-size:10px">Any <b>mockurator-template</b> JSON dropped on the canvas inserts as a pack.</div>
+  </div>
+</div>
+
+<div class="floatPanel" id="panRails">
+  <div class="panHandle" style="background:#993c1d">
+    <span class="panTitle">⚡ Guide rails</span><button class="panClose" onclick="togglePanel('rails')">✕</button>
+  </div>
+  <div class="panBody">
+    <label class="railTip small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="railsMaster" checked> Rails on — nudges here, conscience in report</label>
+    <div id="railList"></div>
+    <div id="railFinds"></div>
+  </div>
+</div>
+
+<!-- context menu -->
+<div id="ctxMenu"></div>
+
 </div>
 
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.26.1', APP_BUILD='2026-08-14';
+const APP_VERSION='1.27.0', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1615,7 +1659,7 @@ function selectMark(i){
   if(i<0||!annos[i]||['box','arrow','text','widget','frame'].indexOf(annos[i].t)<0){ clearSel(); return; }
   sel={kind:'mark',i}; selected=-1; selectedImg=-1; openEditor(true);
 }
-function clearSel(){ sel={kind:null,i:-1}; selectedImg=-1; $('secSel').style.display='none'; }
+function clearSel(){ sel={kind:null,i:-1}; selectedImg=-1; $('secSel').style.display='none'; updateLauncherPills(); }
 
 /* ---------- floating editor position + drag ---------- */
 let floatPos={x:Math.max(20,window.innerWidth-640),y:100};
@@ -1648,6 +1692,7 @@ function openEditor(focus){
   if(!o){ clearSel(); return; }
   const sec=$('secSel'); sec.style.display='flex'; sec.style.flexDirection='column';
   posFloat();
+  updateLauncherPills();
   syncEditor();
   if(focus){ const el=$('selCap'); el.focus(); el.setSelectionRange(el.value.length,el.value.length); }
 }
@@ -1908,84 +1953,181 @@ $('btnDup').onclick=dupSelected;
 $('btnFit').onclick=fitView;
 $('btnClear').onclick=()=>{ if(annos.length){undoStack.push({k:'clear',prev:annos.slice()});annos=[];sync();} };
 $('chkOriginal').onchange=render;
-let panelOpen=true;
-function updateRails(){
-  [['railL','divL'],['railR','divR']].forEach(([rid,did])=>{
-    const r=$(rid), d=$(did);
-    const show=panelOpen&&r.querySelector('.railSec');
-    r.style.display=show?'flex':'none';
-    d.style.display=show?'block':'none';
-  });
-}
-function wireDivider(did,rid,growRight){
-  const d=$(did), r=$(rid);
-  d.addEventListener('pointerdown',e=>{
-    e.preventDefault(); d.setPointerCapture(e.pointerId); d.classList.add('active');
-    const sx=e.clientX, sw=r.getBoundingClientRect().width;
-    const mv=ev=>{
-      let w=growRight? sw+(ev.clientX-sx) : sw-(ev.clientX-sx);
-      w=Math.min(560,Math.max(210,Math.round(w)));
-      r.style.flex='0 0 '+w+'px'; r.style.width=w+'px';
-    };
-    const up=()=>{
-      d.classList.remove('active');
-      d.removeEventListener('pointermove',mv); d.removeEventListener('pointerup',up);
-      if(store.ok){ try{ localStorage.setItem('mockurator:w:'+rid, r.getBoundingClientRect().width|0); }catch(err){} }
-    };
-    d.addEventListener('pointermove',mv); d.addEventListener('pointerup',up);
-  });
-}
-wireDivider('divL','railL',true);
-wireDivider('divR','railR',false);
-if(store.ok){
-  ['railL','railR'].forEach(rid=>{
-    try{
-      const w=parseInt(localStorage.getItem('mockurator:w:'+rid));
-      if(w){ const r=$(rid); r.style.flex='0 0 '+w+'px'; r.style.width=w+'px'; }
-    }catch(e){}
-  });
-}
-const SECS=['secNotes','secSel','secPieces','secSnap','secBm','secLog','secWidgets','secRails','secRecent'];
-const DEFAULT_SIDE={secNotes:'L',secPieces:'L',secWidgets:'R',secRails:'R',secSnap:'R',secBm:'R',secLog:'R',secRecent:'R'};
-function applyLayout(){
-  let map={...DEFAULT_SIDE};
-  if(store.ok){ try{ const m=JSON.parse(localStorage.getItem('mockurator:layout')); if(m)map={...DEFAULT_SIDE,...m}; }catch(e){} }
-  SECS.forEach(id=>{ if(id==='secSel')return; (map[id]==='L'?$('railL'):$('railR')).appendChild($(id)); });
-  updateRails();
-}
-function saveLayout(){
-  if(!store.ok)return;
-  const map={}; SECS.forEach(id=>{ if(id==='secSel')return; map[id]=$('railL').contains($(id))?'L':'R'; });
-  try{ localStorage.setItem('mockurator:layout',JSON.stringify(map)); }catch(e){}
-}
-document.querySelectorAll('.flip').forEach(b=>b.onclick=()=>{
-  const el=$(b.dataset.sec);
-  ($('railL').contains(el)?$('railR'):$('railL')).appendChild(el);
-  saveLayout(); updateRails();
+/* ====== floating panel manager ====== */
+const PANEL_DEFS=[
+  {id:'panNotes',   key:'notes',   col:'#185fa5', defPos:()=>({x:8,y:100})},
+  {id:'panItems',   key:'items',   col:'#ba7517', defPos:()=>({x:8,y:340})},
+  {id:'secSel',     key:'sel',     col:'#0f6e56', defPos:()=>({x:Math.max(8,window.innerWidth-310),y:100})},
+  {id:'panCapture', key:'capture', col:'#534ab7', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:100})},
+  {id:'panWidgets', key:'widgets', col:'#3b6d11', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:100})},
+  {id:'panRails',   key:'rails',   col:'#993c1d', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:380})},
+];
+const panPos={};
+PANEL_DEFS.forEach(p=>{
+  try{ const s=localStorage.getItem('mockurator:pan:'+p.key); panPos[p.key]=s?JSON.parse(s):p.defPos(); }
+  catch(e){ panPos[p.key]=p.defPos(); }
 });
+function clampPanel(key){
+  const def=PANEL_DEFS.find(p=>p.key===key); if(!def)return;
+  const el=$(def.id); if(!el)return;
+  const pos=panPos[key];
+  pos.x=Math.max(0,Math.min(window.innerWidth-(el.offsetWidth||260),pos.x));
+  pos.y=Math.max(0,Math.min(window.innerHeight-(el.offsetHeight||200),pos.y));
+  el.style.left=pos.x+'px'; el.style.top=pos.y+'px';
+}
+function showPanel(key,v){
+  const def=PANEL_DEFS.find(p=>p.key===key); if(!def)return;
+  const el=$(def.id); if(!el)return;
+  el.style.display=v?'flex':'none';
+  if(v)clampPanel(key);
+  updateLauncherPills();
+}
+function togglePanel(key){
+  const def=PANEL_DEFS.find(p=>p.key===key); if(!def)return;
+  const el=$(def.id); if(!el)return;
+  showPanel(key,el.style.display==='none');
+}
+function updateLauncherPills(){
+  PANEL_DEFS.forEach(p=>{
+    const pill=$('lp-'+p.key); if(!pill)return;
+    const el=$(p.id);
+    pill.classList.toggle('on',!!el&&el.style.display!=='none');
+    if(pill.style.display!=='none') pill.style.borderColor=el&&el.style.display!=='none'?p.col:'transparent';
+  });
+}
+(function(){
+  PANEL_DEFS.forEach(def=>{
+    const el=$(def.id); if(!el)return;
+    const handle=el.querySelector('.panHandle')||el.querySelector('#selHandle');
+    if(!handle)return;
+    handle.addEventListener('pointerdown',e=>{
+      const isClose=e.target.classList.contains('panClose')||e.target.id==='selHandleClose';
+      if(isClose)return;
+      e.stopPropagation();
+      handle.setPointerCapture(e.pointerId);
+      const pos=panPos[def.key];
+      const sx=e.clientX-pos.x, sy=e.clientY-pos.y;
+      const mv=ev=>{ pos.x=ev.clientX-sx; pos.y=ev.clientY-sy; clampPanel(def.key); };
+      const up=()=>{
+        handle.removeEventListener('pointermove',mv); handle.removeEventListener('pointerup',up);
+        try{ localStorage.setItem('mockurator:pan:'+def.key,JSON.stringify(pos)); }catch(e){}
+      };
+      handle.addEventListener('pointermove',mv); handle.addEventListener('pointerup',up);
+    });
+  });
+})();
+let panelOpen=true;
+function updateRails(){ /* no-op — floating panel model */ }
+function applyLayout(){ showPanel('notes',true); showPanel('items',true); showPanel('sel',false); showPanel('capture',!wfMode); showPanel('widgets',wfMode); showPanel('rails',wfMode); updateLauncherPills(); }
+function saveLayout(){ /* no-op */ }
 $('btnPanel').onclick=()=>{
-  panelOpen=!panelOpen; updateRails();
-  if(store.ok){ try{ localStorage.setItem('mockurator:rail', panelOpen?'1':'0'); }catch(e){} }
+  panelOpen=!panelOpen;
+  PANEL_DEFS.forEach(p=>{ const el=$(p.id); if(el){ el.style.display=panelOpen?'flex':'none'; } });
+  updateLauncherPills();
 };
+/* ====== context menu ====== */
+function hideCtxMenu(){ $('ctxMenu').style.display='none'; }
+function showCtxMenu(cx,cy,items){
+  const m=$('ctxMenu'); m.innerHTML='';
+  items.forEach(it=>{
+    if(it==='-'){ const s=document.createElement('div'); s.className='ctx-sep'; m.appendChild(s); return; }
+    const d=document.createElement('div'); d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{ hideCtxMenu(); it.action(); };
+    m.appendChild(d);
+  });
+  m.style.display='block'; m.style.left=cx+'px'; m.style.top=cy+'px';
+  const r=m.getBoundingClientRect();
+  if(r.right>window.innerWidth-8)m.style.left=Math.max(4,cx-r.width)+'px';
+  if(r.bottom>window.innerHeight-8)m.style.top=Math.max(4,cy-r.height)+'px';
+}
+document.addEventListener('click',e=>{ if(!$('ctxMenu').contains(e.target))hideCtxMenu(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('ctxMenu').style.display!=='none')hideCtxMenu(); },true);
+canvas.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const p=toWorld(e);
+  const items=buildCtxItems(p,e);
+  if(items.length)showCtxMenu(e.clientX,e.clientY,items);
+});
+function buildCtxItems(p,e){
+  const items=[];
+  const ai=hitAnno(p), si=hitSlice(p), fi=hitFrame(p), ii=hitImg(p);
+  if(fi>=0&&ai<0){
+    selectMark(fi); render(); refreshPieces();
+    items.push({label:'Rename this screen…',action:()=>{ openText(e,p,fi); }});
+    items.push({label:'Duplicate',action:()=>selDup.click()});
+    items.push('-');
+    items.push({label:'Delete screen — widgets stay',action:()=>{ annos.splice(fi,1); clearSel(); sync(); },danger:true});
+    return items;
+  }
+  if(ai>=0){
+    const a=annos[ai];
+    if(sel.kind!=='mark'||sel.i!==ai){ selectMark(ai); render(); refreshPieces(); }
+    if(a.t==='widget'){
+      items.push({label:'Note what it does…',action:()=>{ showPanel('sel',true); setTimeout(()=>$('selCap').focus(),50); }});
+      items.push({label:'Rename…',action:()=>openText(e,p,ai)});
+      items.push({label:'Duplicate',action:()=>selDup.click()});
+      if(msel.length>=2)items.push({label:'Group selected ('+msel.length+')',action:()=>$('btnGroup').click()});
+      items.push('-');
+      items.push({label:'Delete widget',action:()=>delSelected(),danger:true});
+      return items;
+    }
+    items.push({label:'Add \/ edit note…',action:()=>{ showPanel('sel',true); setTimeout(()=>$('selCap').focus(),50); }});
+    if(a.t==='box')items.push({label:a.fill?'Remove fill':'Fill (translucent)',action:()=>{ a.fill=!a.fill; sync(); }});
+    items.push({label:'Duplicate',action:()=>selDup.click()});
+    if(msel.length>=2)items.push({label:'Group selected ('+msel.length+')',action:()=>$('btnGroup').click()});
+    items.push('-');
+    items.push({label:'Delete mark',action:()=>delSelected(),danger:true});
+    return items;
+  }
+  if(si>=0){
+    if(sel.kind!=='piece'||sel.i!==si){ selectPiece(si); render(); refreshPieces(); }
+    items.push({label:'Add \/ edit note…',action:()=>{ showPanel('sel',true); setTimeout(()=>$('selCap').focus(),50); }});
+    items.push({label:'Duplicate',action:()=>selDup.click()});
+    if(msel.length>=2)items.push({label:'Group selected ('+msel.length+')',action:()=>$('btnGroup').click()});
+    items.push('-');
+    items.push({label:'Delete piece',action:()=>delSelected(),danger:true});
+    return items;
+  }
+  if(ii>=0){
+    selectedImg=ii; clearSel(); render();
+    items.push({label:'Delete image',action:()=>delSelected(),danger:true});
+    return items;
+  }
+  items.push({label:'Fit view',action:()=>fitView()});
+  if(wfMode){
+    items.push('-');
+    items.push({label:'Place phone screen…',action:()=>{ $('lp-widgets').click(); }});
+    items.push({label:'Auth ×3 template',action:()=>insertTemplate(TEMPLATES.auth)});
+    items.push({label:'Shop ×4 template',action:()=>insertTemplate(TEMPLATES.shop)});
+  }else{
+    items.push({label:'Clear marks',action:()=>$('btnClear').click()});
+    if(images.length||annos.length)items.push({label:'Export PNG',action:()=>$('btnExport').click()});
+  }
+  return items;
+}
 $('notes').addEventListener('input',scheduleAutosave);
 $('projectName').addEventListener('input',scheduleAutosave);
 
 /* ---------------- help overlay ---------------- */
 function showHelp(v){
   $('helpOverlay').style.display=v?'flex':'none';
-  if(v)setTimeout(()=>$('helpOverlay').focus(),0);
 }
 $('helpBtn').onclick=()=>showHelp(true);
 $('helpClose').onclick=()=>showHelp(false);
 $('helpOverlay').addEventListener('click',e=>{ if(e.target===$('helpOverlay'))showHelp(false); });
-$('helpOverlay').addEventListener('keydown',e=>{
-  if(e.key==='Escape'||e.key==='?'){ e.stopPropagation(); showHelp(false); }
-});
+/* Capture-phase listener — fires BEFORE textEntry's stopPropagation can block it */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if($('helpOverlay').style.display==='flex'){ e.stopPropagation(); showHelp(false); return; }
+    if($('conscienceModal').style.display==='flex'){ e.stopPropagation(); $('conscienceFix').click(); return; }
+  }
+},true);
 
 /* ---------------- keyboard ---------------- */
 window.addEventListener('keydown',e=>{
   const inField=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
-  if(e.key==='Escape'&&$('helpOverlay').style.display==='flex'){showHelp(false);return;}
+  if(e.key==='Escape'&&$('conscienceModal').style.display==='flex'){$('conscienceFix').click();return;}
   if(inField)return;
   if(e.key==='Escape'){
     if(pendingKind){ pendingKind=null; setTool('move'); refreshChips(); toast('Chip released — Move is active.'); return; }
@@ -2696,6 +2838,12 @@ function setWfMode(on,announce){
   document.title=wfMode?'MockuFRAME — Frame it. Spec it. Build it.':'MockuRATOR — Slice it. Mark it. Send it.';
   $('hintAnnotate').style.display=wfMode?'none':'';
   $('hintWireframe').style.display=wfMode?'':'none';
+  /* mode-gate panels */
+  if(wfMode){ showPanel('capture',false); showPanel('widgets',true); showPanel('rails',true); }
+  else { showPanel('widgets',false); if($('panCapture').style.display==='none'&&$('panNotes').style.display!=='none')showPanel('capture',true); }
+  const lw=$('lp-widgets'),lc=$('lp-capture');
+  if(lw)lw.style.display=wfMode?'':'none';
+  if(lc)lc.style.display=wfMode?'none':'';
   try{ localStorage.setItem('mockurator:wfmode',wfMode?'1':'0'); }catch(e){}
   if(wfMode){
     $('dropHint').style.display=(images.length===0&&annos.length===0)?'flex':'none';
@@ -3000,12 +3148,11 @@ refreshPieces();
 if(store.ok){
   setAsNote('Boards autosave in this browser as you work. If storage is ever cleared, autosaves go with it — boards you Saved as JSON are safe in your files.');
   refreshRecent();
-  try{ if(localStorage.getItem('mockurator:rail')==='0')panelOpen=false; }catch(e){}
+  try{ const ps=localStorage.getItem('mockurator:panelsOpen'); if(ps==='0')panelOpen=false; }catch(e){}
 }else{
   setAsNote('Autosave is off here (browser storage unavailable in this preview). It works on the live site and when opened from disk.');
   $('recent').innerHTML='';
 }
-if(window.innerWidth<1000)panelOpen=false;
 applyLayout();
 resize();
 </script>

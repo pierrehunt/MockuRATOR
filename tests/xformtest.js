@@ -16,7 +16,7 @@ ok('loads clean',errs.length===0);
 const AV=(fs.readFileSync('deployed.html','utf8').match(/APP_VERSION='([^']+)'/)||[])[1];
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
 ok('default layout: bookmarklets on the right rail',
-   $('railR').contains($('secBm')) && $('railR').contains($('secLog')) && $('railL').contains($('secNotes')));
+   !!$('panCapture') && !!$('bmLink') && !!$('panNotes'));
 
 w.eval(`
   images=[{img:{},dataURL:'x',x:0,y:0,w:2000,h:1500}];
