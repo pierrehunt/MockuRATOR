@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.3</span>
+    <span class="ver" id="verBadge">v1.28.4</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.3', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.4', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -967,6 +967,7 @@ function render(){
     if(ix!==editIdx)drawFrame(ctx,a); else { const keep=a.label; a.label=''; drawFrame(ctx,a); a.label=keep; } });
   annos.forEach((a,ix)=>{ if(a.t==='frame')return;
     if(ix!==editIdx)drawAnno(ctx,a); else if(a.t==='widget'){ const keep=a.label; a.label=''; drawWidget(ctx,a); a.label=keep; } });
+  if($('chkOriginal').checked)images.forEach(im=>{ if(im.top)ctx.drawImage(im.img,im.x,im.y,im.w,im.h); });
   drawGroupCaps(ctx);
   drawAIThreads(ctx);
   if(wfMode){
@@ -2194,7 +2195,27 @@ function updateLauncherPills(){
 })();
 let panelOpen=true;
 function updateRails(){ /* no-op — floating panel model */ }
-function applyLayout(){ showPanel('notes',true); showPanel('items',true); showPanel('sel',false); showPanel('capture',!wfMode); showPanel('widgets',wfMode); showPanel('rails',wfMode); updateLauncherPills(); }
+function deoverlapPanels(){
+  const placed=[];
+  PANEL_DEFS.forEach(def=>{
+    const el=$(def.id); if(!el||el.style.display==='none')return;
+    const pos=panPos[def.key];
+    const w=el.offsetWidth||260, h=el.offsetHeight||220;
+    let guard=0;
+    while(guard++<40){
+      const hit=placed.find(b=>pos.x<b.x+b.w+8&&pos.x+w+8>b.x&&pos.y<b.y+b.h+8&&pos.y+h+8>b.y);
+      if(!hit)break;
+      pos.y=hit.y+hit.h+10;                                   // nudge below the blocker
+      if(pos.y+h>window.innerHeight-20){                       // column full — start a new one
+        pos.y=PANEL_TOP(); pos.x=hit.x+hit.w+10;
+        if(pos.x+w>window.innerWidth-8)pos.x=Math.max(0,window.innerWidth-w-8);
+      }
+    }
+    clampPanel(def.key);
+    placed.push({x:pos.x,y:pos.y,w,h});
+  });
+}
+function applyLayout(){ showPanel('notes',true); showPanel('items',true); showPanel('sel',false); showPanel('capture',!wfMode); showPanel('widgets',wfMode); showPanel('rails',wfMode); updateLauncherPills(); setTimeout(deoverlapPanels,0); }
 function saveLayout(){ /* no-op */ }
 $('btnPanel').onclick=()=>{
   panelOpen=!panelOpen;
@@ -2447,13 +2468,13 @@ function serialize(){
   ensureIds();   // every mark ships with a stable id — AIs reply-back with re:"<id>"
   return {app:'mockurator',v:1,appVersion:APP_VERSION,build:APP_BUILD,
     project:$('projectName').value,notes:$('notes').value,pageURL:$('pageURL').value.trim(),savedAt:new Date().toISOString(),
-    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y})),slices,annos,groups,contextLog,attachments};
+    images:images.map(m=>({dataURL:m.dataURL,x:m.x,y:m.y,w:m.w,h:m.h,top:m.top||undefined})),slices,annos,groups,contextLog,attachments};
 }
 function applyState(d){
   if(!d||(d.app!=='mockurator'&&d.app!=='sliceboard'))throw new Error('bad file');
   Promise.all((d.images||[]).map(o=>new Promise(res=>{
     const img=new Image();
-    img.onload=()=>res({img,dataURL:o.dataURL,x:o.x,y:o.y,w:img.naturalWidth,h:img.naturalHeight});
+    img.onload=()=>res({img,dataURL:o.dataURL,x:o.x,y:o.y,w:o.w||img.naturalWidth,h:o.h||img.naturalHeight,top:!!o.top});
     img.src=o.dataURL;
   }))).then(arr=>{
     images=arr; slices=d.slices||[]; annos=d.annos||[]; groups=d.groups||[]; contextLog=d.contextLog||[]; attachments=d.attachments||[];
@@ -2534,6 +2555,7 @@ function renderBoard(cb){
   });
   annos.forEach(a=>{ if(a.t==='frame')drawAnno(g,a); });
   annos.forEach(a=>{ if(a.t!=='frame')drawAnno(g,a); });
+  if(inclImgs)images.forEach(im=>{ if(im.top)g.drawImage(im.img,im.x,im.y,im.w,im.h); });
   drawGroupCaps(g);
   drawAIThreads(g);
   g.restore();
@@ -3047,19 +3069,23 @@ function alignSel(mode){
 function reorderSel(front){
   /* images reorder within images[] — slices reference images by INDEX, so remap them */
   if(selectedImg>=0&&images[selectedImg]){
-    if(images.length<2){ toast('Only one image \u2014 nothing to stack it against.'); return; }
-    const i=selectedImg;
-    undoStack.push({k:'imgSnap',images:images.slice(),slices:JSON.parse(JSON.stringify(slices))});
-    const im=images.splice(i,1)[0];
-    const ni=front?images.length:0;
-    images.splice(ni,0,im);
-    slices.forEach(s=>{
-      if(s.im===i)s.im=ni;
-      else if(front&&s.im>i)s.im--;
-      else if(!front&&s.im<i)s.im++;
-    });
-    selectedImg=ni;
-    sync(); toast(front?'Image brought to front.':'Image sent to back.');
+    undoStack.push({k:'imgSnap',images:images.map(m=>({...m})),slices:JSON.parse(JSON.stringify(slices))});
+    const i=selectedImg, im=images[i];
+    if(front){
+      im.top=true;                                   // above marks and widgets
+      const moved=images.splice(i,1)[0];
+      images.push(moved);
+      slices.forEach(s=>{ if(s.im===i)s.im=images.length-1; else if(s.im>i)s.im--; });
+      selectedImg=images.length-1;
+      sync(); toast('Image on top \u2014 above marks and widgets.');
+    } else {
+      im.top=false;                                  // back to the evidence layer
+      const moved=images.splice(i,1)[0];
+      images.unshift(moved);
+      slices.forEach(s=>{ if(s.im===i)s.im=0; else if(s.im<i)s.im++; });
+      selectedImg=0;
+      sync(); toast('Image sent to the back \u2014 under everything.');
+    }
     return;
   }
   if(sel.kind==='mark'&&annos[sel.i]){
@@ -3113,7 +3139,7 @@ function setWfMode(on,announce){
   $('hintAnnotate').style.display=wfMode?'none':'';
   $('hintWireframe').style.display=wfMode?'':'none';
   /* mode-gate panels */
-  if(wfMode){ showPanel('capture',false); showPanel('widgets',true); showPanel('rails',true); }
+  if(wfMode){ showPanel('capture',false); showPanel('widgets',true); showPanel('rails',true); setTimeout(deoverlapPanels,0); }
   else { showPanel('widgets',false); if($('panCapture').style.display==='none'&&$('panNotes').style.display!=='none')showPanel('capture',true); }
   const lw=$('lp-widgets'),lc=$('lp-capture');
   if(lw)lw.style.display=wfMode?'':'none';
