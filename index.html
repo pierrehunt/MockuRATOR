@@ -128,6 +128,23 @@ canvas#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none
 #helpClose{float:right;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:4px 12px;cursor:pointer;color:var(--ink2)}
 #helpClose:hover{background:#f0eee6}
+/* startup mode chooser */
+#startModal{position:fixed;inset:0;background:rgba(20,19,15,.6);display:none;
+  align-items:center;justify-content:center;z-index:90;padding:20px}
+#startCard{background:var(--white);border:1px solid var(--line);border-radius:16px;
+  max-width:640px;width:100%;padding:28px 30px;box-shadow:0 28px 70px rgba(0,0,0,.4);text-align:center}
+#startCard h2{margin:0 0 4px;font-size:20px;color:var(--ink)}
+#startCard .sub{color:var(--muted);font-size:13.5px;margin:0 0 20px}
+.startRow{display:flex;gap:14px;justify-content:center}
+.startOpt{flex:1;max-width:270px;border:2px solid var(--line);border-radius:14px;padding:20px 16px;
+  cursor:pointer;background:#fff;text-align:center;transition:border-color .15s,transform .1s}
+.startOpt:hover{border-color:var(--accent);transform:translateY(-2px)}
+.startOpt .big{font-size:17px;font-weight:800;margin-bottom:4px}
+.startOpt .tag{font-size:12px;color:var(--muted);line-height:1.5}
+.startOpt.rator .big{color:#b91c1c}
+.startOpt.frame .big{color:var(--accent)}
+#startRemember{display:flex;gap:7px;align-items:center;justify-content:center;
+  margin-top:18px;font-size:12.5px;color:var(--muted);cursor:pointer}
 /* conscience modal */
 #conscienceModal{position:fixed;inset:0;background:rgba(20,19,15,.55);display:none;
   align-items:center;justify-content:center;z-index:80;padding:20px}
@@ -337,7 +354,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.27.4</span>
+    <span class="ver" id="verBadge">v1.28.0</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -501,6 +518,23 @@ a.plainlink:hover{color:#137059}
     </div>
   </div>
 </div>
+    <div id="startModal" style="display:none">
+      <div id="startCard">
+        <h2>What are you making today?</h2>
+        <p class="sub">Two tools, one file — switch any time with the tabs in the header.</p>
+        <div class="startRow">
+          <div class="startOpt rator" id="startRator">
+            <div class="big">MockuRATOR</div>
+            <div class="tag">Slice a screenshot, mark the issues, export an AI-ready bug package.<br><b>Slice it. Mark it. Send it.</b></div>
+          </div>
+          <div class="startOpt frame" id="startFrame">
+            <div class="big">MockuFRAME</div>
+            <div class="tag">Frame screens, drop widgets, wire flows, export a build brief.<br><b>Frame it. Spec it. Build it.</b></div>
+          </div>
+        </div>
+        <label id="startRemember"><input type="checkbox" id="startRememberChk"> Remember my choice — don't ask again</label>
+      </div>
+    </div>
     <div id="conscienceModal" style="display:none">
       <div id="conscienceCard">
         <h3>⚠ UX conscience check</h3>
@@ -683,7 +717,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.27.4', APP_BUILD='2026-08-14';
+const APP_VERSION='1.28.0', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1231,6 +1265,17 @@ canvas.addEventListener('pointerdown',e=>{
     }
   }
   if(tool==='move'){
+    /* selected image: corner grips resize (Shift = keep proportions) */
+    if(selectedImg>=0&&images[selectedImg]){
+      const im=images[selectedImg], hr=16/view.s;
+      const corners={nw:[im.x,im.y],ne:[im.x+im.w,im.y],sw:[im.x,im.y+im.h],se:[im.x+im.w,im.y+im.h]};
+      for(const k in corners){
+        if(Math.hypot(p.x-corners[k][0],p.y-corners[k][1])<hr){
+          drag={kind:'resizeImg',i:selectedImg,corner:k,orig:{x:im.x,y:im.y,w:im.w,h:im.h},ar:im.w/im.h};
+          return;
+        }
+      }
+    }
     // a selected box is body-draggable even when unfilled
     if(sel.kind==='mark'&&annos[sel.i]){
       const a=annos[sel.i];
@@ -1264,6 +1309,8 @@ canvas.addEventListener('pointerdown',e=>{
       if(ii>=0){
         selectedImg=ii; clearSel();
         drag={kind:'moveImg',i:ii,dx:p.x-images[ii].x,dy:p.y-images[ii].y};
+        if(!window.__imgHintShown){ window.__imgHintShown=1;
+          toast('Drag the corners to resize — hold Shift to keep proportions. Del removes it.'); }
         render(); return;
       }
       clearSel(); selectedImg=-1; selected=-1;
@@ -1293,6 +1340,26 @@ canvas.addEventListener('pointermove',e=>{
       canvas.style.cursor=cur;
     }
     return;
+  }
+  else if(drag.kind==='resizeImg'){
+    const im=images[drag.i]; if(!im)return;
+    const o=drag.orig, c=drag.corner;
+    let nx=o.x, ny=o.y, nw=o.w, nh=o.h;
+    if(c.includes('e'))nw=Math.max(40,p.x-o.x);
+    if(c.includes('s'))nh=Math.max(40,p.y-o.y);
+    if(c.includes('w')){ nw=Math.max(40,o.x+o.w-p.x); nx=o.x+o.w-nw; }
+    if(c.includes('n')){ nh=Math.max(40,o.y+o.h-p.y); ny=o.y+o.h-nh; }
+    if(e.shiftKey){ /* proportional: honour the larger relative change */
+      const rw=nw/o.w, rh=nh/o.h, r=Math.max(rw,rh);
+      nw=Math.max(40,o.w*r); nh=Math.max(40,o.h*r);
+      if(c.includes('w'))nx=o.x+o.w-nw;
+      if(c.includes('n'))ny=o.y+o.h-nh;
+    }
+    const sxr=nw/o.w, syr=nh/o.h;
+    im.x=nx; im.y=ny; im.w=nw; im.h=nh;
+    /* slices cut from this image scale with it */
+    slices.forEach(s=>{ if(s.im===drag.i){
+      s.x=nx+(s.x-o.x)*sxr; s.y=ny+(s.y-o.y)*syr; }});
   }
   else if(drag.kind==='moveImg'){
     const im=images[drag.i]; if(!im)return;
@@ -1375,6 +1442,7 @@ canvas.addEventListener('pointerup',()=>{
     sync(); return;
   }
   if(d.kind==='moveImg'){ sync(); return; }
+  if(d.kind==='resizeImg'){ sync(); return; }
   if(d.kind==='moveFrame'){ sync(); return; }   // undo snapshot already pushed on first movement
   if(d.kind==='wdraw'){
     if(pendingKind&&pendingKind.indexOf('frame:')===0){
@@ -1692,7 +1760,6 @@ function clearSel(){ sel={kind:null,i:-1}; selectedImg=-1; $('secSel').style.dis
 
 /* ---------- floating editor position + drag ---------- */
 let floatPos={x:Math.max(20,window.innerWidth-640),y:100};
-try{ const fp=JSON.parse(localStorage.getItem('mockurator:floatpos')); if(fp)floatPos={x:+fp.x||floatPos.x,y:+fp.y||floatPos.y}; }catch(e){}
 function posFloat(){
   const el=$('secSel');
   floatPos.x=Math.max(0,Math.min(window.innerWidth-(el.offsetWidth||290),floatPos.x));
@@ -1993,10 +2060,7 @@ const PANEL_DEFS=[
   {id:'panRails',   key:'rails',   col:'#993c1d', defPos:()=>({x:Math.max(8,window.innerWidth-280),y:PANEL_TOP()+340})},
 ];
 const panPos={};
-PANEL_DEFS.forEach(p=>{
-  try{ const s=localStorage.getItem('mockurator:pan:'+p.key); panPos[p.key]=s?JSON.parse(s):p.defPos(); }
-  catch(e){ panPos[p.key]=p.defPos(); }
-});
+PANEL_DEFS.forEach(p=>{ panPos[p.key]=p.defPos(); });   // clean start: panels always open at home
 function clampPanel(key){
   const def=PANEL_DEFS.find(p=>p.key===key); if(!def)return;
   const el=$(def.id); if(!el)return;
@@ -2037,17 +2101,27 @@ function updateLauncherPills(){
       handle.setPointerCapture(e.pointerId);
       const pos=panPos[def.key];
       const sx=e.clientX-pos.x, sy=e.clientY-pos.y;
-      const mv=ev=>{ pos.x=ev.clientX-sx; pos.y=ev.clientY-sy; clampPanel(def.key); };
+      const mv=ev=>{
+        pos.x=ev.clientX-sx; pos.y=ev.clientY-sy;
+        /* magnetic snap: viewport edges + other visible panels, 12px threshold */
+        const S=12, r={x:pos.x,y:pos.y,w:el.offsetWidth,h:el.offsetHeight};
+        const edgesX=[0,window.innerWidth-r.w], edgesY=[PANEL_TOP()-8,window.innerHeight-r.h];
+        PANEL_DEFS.forEach(o=>{ if(o.key===def.key)return; const oe=$(o.id);
+          if(!oe||oe.style.display==='none')return; const b=oe.getBoundingClientRect();
+          edgesX.push(b.right+6,b.left-r.w-6,b.left,b.right-r.w);
+          edgesY.push(b.bottom+6,b.top-r.h-6,b.top,b.bottom-r.h); });
+        for(const ex of edgesX){ if(Math.abs(pos.x-ex)<S){ pos.x=ex; break; } }
+        for(const ey of edgesY){ if(Math.abs(pos.y-ey)<S){ pos.y=ey; break; } }
+        clampPanel(def.key);
+      };
       const up=()=>{
         handle.removeEventListener('pointermove',mv); handle.removeEventListener('pointerup',up);
-        try{ localStorage.setItem('mockurator:pan:'+def.key,JSON.stringify(pos)); }catch(e){}
       };
       handle.addEventListener('pointermove',mv); handle.addEventListener('pointerup',up);
     });
     const grip=document.createElement('div'); grip.className='panResize'; grip.title='Drag to resize';
     el.appendChild(grip);
-    try{ const s=JSON.parse(localStorage.getItem('mockurator:pansize:'+def.key));
-      if(s){ el.style.width=s.w+'px'; if(s.h)el.style.height=s.h+'px'; } }catch(e){}
+    /* clean start: sizes reset each load too */
     grip.addEventListener('pointerdown',e=>{
       e.stopPropagation(); e.preventDefault();
       grip.setPointerCapture(e.pointerId);
@@ -2059,8 +2133,7 @@ function updateLauncherPills(){
       };
       const up=()=>{
         grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up);
-        const r2=el.getBoundingClientRect();
-        try{ localStorage.setItem('mockurator:pansize:'+def.key,JSON.stringify({w:Math.round(r2.width),h:Math.round(r2.height)})); }catch(e){}
+
       };
       grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up);
     });
@@ -2187,6 +2260,7 @@ document.addEventListener('keydown',function escapeAuthority(e){
   if($('ctxMenu').style.display!=='none'&&$('ctxMenu').style.display!==''){ eat(); hideCtxMenu(); return; }
 
   /* 3 — overlays, newest-feeling first */
+  if($('startModal').style.display==='flex'){ eat(); dismissStart('annotate',false); return; }
   if($('toolModal').style.display==='flex'){ eat(); $('toolModal').style.display='none'; return; }
   if($('conscienceModal').style.display==='flex'){ eat(); $('conscienceFix').click(); return; }
   if($('devPreview').style.display==='flex'){ eat(); $('devPreview').style.display='none'; return; }
@@ -3270,6 +3344,20 @@ showTip(Math.floor(Math.random()*TIPS.length)); tipAuto();
 $('helpTips').innerHTML=TIPS.map(t=>'<li>'+t+'</li>').join('');
 
 /* ---------------- init ---------------- */
+/* ---------------- startup mode chooser ---------------- */
+function dismissStart(mode,remember){
+  $('startModal').style.display='none';
+  setWfMode(mode==='frame',false);
+  if(remember){ try{ localStorage.setItem('mockurator:startMode',mode); }catch(e){} }
+}
+$('startRator').onclick=()=>dismissStart('annotate',$('startRememberChk').checked);
+$('startFrame').onclick=()=>dismissStart('frame',$('startRememberChk').checked);
+(function(){
+  let remembered=null;
+  try{ remembered=localStorage.getItem('mockurator:startMode'); }catch(e){}
+  if(remembered){ setWfMode(remembered==='frame',false); return; }
+  if(images.length===0&&annos.length===0)$('startModal').style.display='flex';
+})();
 $('verBadge').textContent='v'+APP_VERSION;
 $('brandIcon').src=document.querySelector('link[rel="icon"]').href;
 console.log('MockuRATOR v'+APP_VERSION+' ('+APP_BUILD+')');

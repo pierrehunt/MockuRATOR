@@ -17,6 +17,11 @@ ok('loads clean',errs.length===0);
 const AV=(src.match(/APP_VERSION='([^']+)'/)||[])[1];
 ok('version badge matches source (v'+AV+')',d.querySelector('.ver').textContent==='v'+AV);
 
+/* RUNG 3-start: startup chooser open on fresh load → Esc dismisses to MockuRATOR */
+ok('startup chooser shows on fresh empty load',$('startModal').style.display==='flex');
+esc();
+ok('rung 3: Esc dismisses the startup chooser to annotate mode',$('startModal').style.display==='none');
+
 /* CONTRACT 0: exactly ONE Escape authority in source — no competing handlers */
 const escHandlers=(src.match(/e\.key==='Escape'|e\.key === 'Escape'/g)||[]).length;
 // allowed: the authority's own check (1) + textEntry's early-return delegation (1) + window handler's delegation (1) + BM_CODE bookmarklet string (1)
