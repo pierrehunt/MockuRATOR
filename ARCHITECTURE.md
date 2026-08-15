@@ -51,6 +51,14 @@ label (unlabeled widgets), note (no behaviour note). `railState` persisted to lo
 Report omits the conscience block entirely when master is off.
 
 ## Traps (learned the hard way)
+- **THE ESCAPE LAW**: Escape broke FIVE times because handlers multiplied. There is now ONE
+  Escape authority — a capture-phase document listener marked `THE SINGLE ESCAPE AUTHORITY`
+  with a 9-rung priority ladder (text editor → ctx menu → overlays → blur field → release
+  chip → cancel drag → deselect image → clear msel → clear sel). NEVER add another Escape
+  handler anywhere — add a rung to the ladder. `esctest.js` enforces this: it counts
+  Escape handlers in source and fails above 4 (authority + 2 delegations + bookmarklet).
+  The root cause was `if(inField)return;` running before Escape handling while
+  `openEditor(true)` auto-focuses selCap — focus was almost always in a field.
 - `lw()` is render-scoped; widget and frame code uses global `lwv()`. Don't confuse them.
 - TWO bbox functions include widgets (contentBBox for Fit — also includes frames+title strip;
   groupBBox for caps — does NOT). The line `if(a.t==='box'||a.t==='widget')acc(...)` exists

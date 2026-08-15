@@ -328,7 +328,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.27.1</span>
+    <span class="ver" id="verBadge">v1.27.2</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -671,7 +671,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.27.1', APP_BUILD='2026-08-14';
+const APP_VERSION='1.27.2', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1897,8 +1897,8 @@ function commitTextEntry(fromBlur){
 }
 function cancelText(){ pendingText=null; editIdx=-1; textEntry.placeholder='Type, then Enter'; textEntry.style.display='none'; render(); }
 textEntry.addEventListener('keydown',e=>{
+  if(e.key==='Escape')return;              // Escape belongs to the single authority below
   if(e.key==='Enter')commitTextEntry(false);
-  if(e.key==='Escape')cancelText();
   e.stopPropagation();
 });
 textEntry.addEventListener('input',()=>{ textEntry.size=Math.max(6,textEntry.value.length+2); });
@@ -2060,7 +2060,7 @@ function showCtxMenu(cx,cy,items){
   if(r.bottom>window.innerHeight-8)m.style.top=Math.max(4,cy-r.height)+'px';
 }
 document.addEventListener('click',e=>{ if(!$('ctxMenu').contains(e.target))hideCtxMenu(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('ctxMenu').style.display!=='none')hideCtxMenu(); },true);
+/* ctxMenu Escape handled by the single Escape authority */
 canvas.addEventListener('contextmenu',e=>{
   e.preventDefault();
   const p=toWorld(e);
@@ -2135,24 +2135,58 @@ $('helpBtn').onclick=()=>showHelp(true);
 $('helpClose').onclick=()=>showHelp(false);
 $('helpOverlay').addEventListener('click',e=>{ if(e.target===$('helpOverlay'))showHelp(false); });
 /* Capture-phase listener — fires BEFORE textEntry's stopPropagation can block it */
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    if($('helpOverlay').style.display==='flex'){ e.stopPropagation(); showHelp(false); return; }
-    if($('conscienceModal').style.display==='flex'){ e.stopPropagation(); $('conscienceFix').click(); return; }
-  }
+/* ═════════════════════════════════════════════════════════════════
+   THE SINGLE ESCAPE AUTHORITY
+   Every Escape behaviour lives HERE and ONLY here. Capture phase on
+   document = fires before any element handler can stopPropagation.
+   Priority ladder, top to bottom — first match wins, then we stop
+   the event dead so nothing else double-handles it.
+   RULE FOR ALL FUTURE CODE: never add another Escape handler.
+   Add a rung to this ladder instead.
+   ═════════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown',function escapeAuthority(e){
+  if(e.key!=='Escape')return;
+  const eat=()=>{ e.preventDefault(); e.stopImmediatePropagation(); };
+
+  /* 1 — in-place text editor open? cancel it */
+  if(textEntry.style.display==='block'){ eat(); cancelText(); return; }
+
+  /* 2 — context menu open? close it */
+  if($('ctxMenu').style.display!=='none'&&$('ctxMenu').style.display!==''){ eat(); hideCtxMenu(); return; }
+
+  /* 3 — overlays, newest-feeling first */
+  if($('toolModal').style.display==='flex'){ eat(); $('toolModal').style.display='none'; return; }
+  if($('conscienceModal').style.display==='flex'){ eat(); $('conscienceFix').click(); return; }
+  if($('devPreview').style.display==='flex'){ eat(); $('devPreview').style.display='none'; return; }
+  if($('helpOverlay').style.display==='flex'){ eat(); showHelp(false); return; }
+
+  /* 4 — focus is inside a note/name field? leave the field (that IS what Esc means there) */
+  const ae=document.activeElement;
+  if(ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)){ eat(); ae.blur(); return; }
+
+  /* 5 — armed widget/frame chip? release it */
+  if(pendingKind){ eat(); pendingKind=null; setTool('move'); refreshChips(); toast('Chip released — Move is active.'); return; }
+
+  /* 6 — mid-drag? cancel the drag */
+  if(drag){ eat(); drag=null; render(); return; }
+
+  /* 7 — selected raw image? deselect */
+  if(selectedImg>=0){ eat(); selectedImg=-1; render(); return; }
+
+  /* 8 — multi-select active? clear it */
+  if(msel.length){ eat(); msel=[]; refreshPieces(); render(); return; }
+
+  /* 9 — something selected? deselect */
+  if(sel.kind){ eat(); clearSel(); selected=-1; render(); refreshPieces(); return; }
+
+  /* nothing to escape from — let it be */
 },true);
 
 /* ---------------- keyboard ---------------- */
 window.addEventListener('keydown',e=>{
+  if(e.key==='Escape')return;   // Escape is owned entirely by the single authority above
   const inField=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
-  if(e.key==='Escape'&&$('conscienceModal').style.display==='flex'){$('conscienceFix').click();return;}
   if(inField)return;
-  if(e.key==='Escape'){
-    if(pendingKind){ pendingKind=null; setTool('move'); refreshChips(); toast('Chip released — Move is active.'); return; }
-    if(selectedImg>=0){ selectedImg=-1; render(); return; }
-    if(drag){ drag=null; render(); return; }
-    return;
-  }
   if(e.key==='?'||(e.shiftKey&&e.key==='/')){showHelp(true);return;}
   if(e.code==='Space'){spaceDown=true;e.preventDefault();return;}
   const map={v:'move',s:'slice',h:'pan',b:'box',a:'arrow',p:'pen',t:'text'};
