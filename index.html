@@ -80,8 +80,12 @@ label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:#c9c6b8;c
   padding:6px 10px;cursor:pointer;color:var(--ink2);display:flex;gap:6px;align-items:center}
 .tbtn:hover{background:#f0eee6}
 .tbtn.active{background:var(--ink);color:#efede4}
-.tbtn.tiny{padding:4px 7px;font-size:13px;opacity:.45}
-.tbtn.tiny.armed{opacity:1}
+.tbtn.tiny{padding:4px 6px;opacity:.5;display:flex;align-items:center;justify-content:center}
+.tbtn.tiny svg{display:block}
+.tbtn.tiny:hover{opacity:.85;background:#f0eee6}
+.tbtn.tiny.armed{opacity:1;color:var(--accent)}
+#alignBar .mini{display:flex;align-items:center;justify-content:center;padding:4px 6px}
+#alignBar .mini svg{display:block}
 .tbtn .key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
   color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .tbtn.active .key{color:#c9c6b8;border-color:#55534a}
@@ -328,7 +332,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.27.2</span>
+    <span class="ver" id="verBadge">v1.27.3</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -372,17 +376,17 @@ a.plainlink:hover{color:#137059}
   <button class="swatch" data-color="#111827" style="background:#111827" title="Black"></button>
   <div class="tsep"></div>
   <div id="selTools" style="display:flex;gap:2px;align-items:center">
-    <button class="tbtn tiny" id="tbAlL" title="Align left edges (select 2+)">⇤</button>
-    <button class="tbtn tiny" id="tbAlC" title="Align horizontal centers">↔</button>
-    <button class="tbtn tiny" id="tbAlR" title="Align right edges">⇥</button>
-    <button class="tbtn tiny" id="tbAlT" title="Align top edges">⤒</button>
-    <button class="tbtn tiny" id="tbAlM" title="Align vertical centers">↕</button>
-    <button class="tbtn tiny" id="tbAlB" title="Align bottom edges">⤓</button>
-    <button class="tbtn tiny" id="tbDsH" title="Distribute horizontally (equal gaps)">⋯</button>
-    <button class="tbtn tiny" id="tbDsV" title="Distribute vertically (equal gaps)">⋮</button>
+    <button class="tbtn tiny" id="tbAlL" title="Align left edges (select 2+)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2" y1="1.5" x2="2" y2="14.5"/><rect x="4.5" y="3" width="8" height="3.6" rx="0.8"/><rect x="4.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbAlC" title="Align horizontal centers"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="14.5"/><rect x="3.5" y="3" width="9" height="3.6" rx="0.8"/><rect x="5.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbAlR" title="Align right edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="14" y1="1.5" x2="14" y2="14.5"/><rect x="3.5" y="3" width="8" height="3.6" rx="0.8"/><rect x="6.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbAlT" title="Align top edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="2" x2="14.5" y2="2"/><rect x="3" y="4.5" width="3.6" height="8" rx="0.8"/><rect x="9.4" y="4.5" width="3.6" height="5" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbAlM" title="Align vertical centers"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="8" x2="14.5" y2="8"/><rect x="3" y="3.5" width="3.6" height="9" rx="0.8"/><rect x="9.4" y="5.5" width="3.6" height="5" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbAlB" title="Align bottom edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="14" x2="14.5" y2="14"/><rect x="3" y="3.5" width="3.6" height="8" rx="0.8"/><rect x="9.4" y="6.5" width="3.6" height="5" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbDsH" title="Distribute horizontally (equal gaps)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="1.5" y="4" width="3" height="8" rx="0.8"/><rect x="6.5" y="4" width="3" height="8" rx="0.8"/><rect x="11.5" y="4" width="3" height="8" rx="0.8"/></svg></button>
+    <button class="tbtn tiny" id="tbDsV" title="Distribute vertically (equal gaps)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="8" height="3" rx="0.8"/><rect x="4" y="6.5" width="8" height="3" rx="0.8"/><rect x="4" y="11.5" width="8" height="3" rx="0.8"/></svg></button>
     <div class="tsep"></div>
-    <button class="tbtn tiny" id="tbFront" title="Bring selected to front">⬆︎</button>
-    <button class="tbtn tiny" id="tbBack" title="Send selected to back">⬇︎</button>
+    <button class="tbtn tiny" id="tbFront" title="Bring selected to front"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="6" width="8" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.9"/><rect x="2" y="2" width="8" height="8" rx="1" stroke-dasharray="2 1.6"/></svg></button>
+    <button class="tbtn tiny" id="tbBack" title="Send selected to back"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="6" width="8" height="8" rx="1" stroke-dasharray="2 1.6"/><rect x="2" y="2" width="8" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.9"/></svg></button>
   </div>
   <div class="right">
     <button class="tbtn" id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
@@ -584,14 +588,14 @@ a.plainlink:hover{color:#137059}
       <button class="mini primaryish" id="btnGroup">Group selected</button>
       <button class="mini" id="btnMselClear">Clear selection</button>
       <div id="alignBar">
-        <button class="mini" id="alL" title="Align left edges">⇤</button>
-        <button class="mini" id="alC" title="Align horizontal centers">↔</button>
-        <button class="mini" id="alR" title="Align right edges">⇥</button>
-        <button class="mini" id="alT" title="Align top edges">⤒</button>
-        <button class="mini" id="alM" title="Align vertical centers">↕</button>
-        <button class="mini" id="alB" title="Align bottom edges">⤓</button>
-        <button class="mini" id="dsH" title="Distribute horizontally">⋯</button>
-        <button class="mini" id="dsV" title="Distribute vertically">⋮</button>
+        <button class="mini" id="alL" title="Align left edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2" y1="1.5" x2="2" y2="14.5"/><rect x="4.5" y="3" width="8" height="3.6" rx="0.8"/><rect x="4.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+        <button class="mini" id="alC" title="Align horizontal centers"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="14.5"/><rect x="3.5" y="3" width="9" height="3.6" rx="0.8"/><rect x="5.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+        <button class="mini" id="alR" title="Align right edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="14" y1="1.5" x2="14" y2="14.5"/><rect x="3.5" y="3" width="8" height="3.6" rx="0.8"/><rect x="6.5" y="9.4" width="5" height="3.6" rx="0.8"/></svg></button>
+        <button class="mini" id="alT" title="Align top edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="2" x2="14.5" y2="2"/><rect x="3" y="4.5" width="3.6" height="8" rx="0.8"/><rect x="9.4" y="4.5" width="3.6" height="5" rx="0.8"/></svg></button>
+        <button class="mini" id="alM" title="Align vertical centers"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="8" x2="14.5" y2="8"/><rect x="3" y="3.5" width="3.6" height="9" rx="0.8"/><rect x="9.4" y="5.5" width="3.6" height="5" rx="0.8"/></svg></button>
+        <button class="mini" id="alB" title="Align bottom edges"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="1.5" y1="14" x2="14.5" y2="14"/><rect x="3" y="3.5" width="3.6" height="8" rx="0.8"/><rect x="9.4" y="6.5" width="3.6" height="5" rx="0.8"/></svg></button>
+        <button class="mini" id="dsH" title="Distribute horizontally"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="1.5" y="4" width="3" height="8" rx="0.8"/><rect x="6.5" y="4" width="3" height="8" rx="0.8"/><rect x="11.5" y="4" width="3" height="8" rx="0.8"/></svg></button>
+        <button class="mini" id="dsV" title="Distribute vertically"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="8" height="3" rx="0.8"/><rect x="4" y="6.5" width="8" height="3" rx="0.8"/><rect x="4" y="11.5" width="8" height="3" rx="0.8"/></svg></button>
       </div>
     </div>
     <div id="pieces" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
@@ -671,7 +675,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.27.2', APP_BUILD='2026-08-14';
+const APP_VERSION='1.27.3', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
