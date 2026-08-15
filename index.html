@@ -387,7 +387,7 @@ a.plainlink:hover{color:#137059}
       <button class="modeTab on" id="modeAnnotate" title="MockuRATOR — slice screenshots, mark issues, export AI packages">MockuRATOR</button>
       <button class="modeTab" id="modeFrame" title="MockuFRAME — frame screens, spec widgets, generate build briefs">MockuFRAME</button>
     </div>
-    <span class="ver" id="verBadge">v1.28.5</span>
+    <span class="ver" id="verBadge">v1.29.0</span>
   </div>
   <button id="wfToggle" style="display:none" aria-hidden="true"></button>
   <input id="projectName" placeholder="Project name (used in file names)">
@@ -671,7 +671,7 @@ a.plainlink:hover{color:#137059}
       </div>
     </div>
     <div id="pieces" style="flex:1;min-height:60px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
-    <div class="railTip small" style="font-size:10px;margin-top:4px">Ctrl-click rows to multi-select → Group. Right-click any item for quick actions.</div>
+    <div class="railTip small" style="font-size:10px;margin-top:4px"><b>Multi-select:</b> drag a box on empty canvas (in Move), or Ctrl-click rows here — then <b>Group</b>. Drag any selected item and they all move. Right-click anything for quick actions.</div>
   </div>
 </div>
 
@@ -750,7 +750,7 @@ a.plainlink:hover{color:#137059}
 <script>
 'use strict';
 /* ================= VERSION ================= */
-const APP_VERSION='1.28.5', APP_BUILD='2026-08-14';
+const APP_VERSION='1.29.0', APP_BUILD='2026-08-14';
 const $=id=>document.getElementById(id);
 const canvas=$('canvas'), ctx=canvas.getContext('2d');
 const stage=$('stage'), dpr=window.devicePixelRatio||1;
@@ -1159,7 +1159,10 @@ function refreshPieces(){
     const cap=document.createElement('div'); cap.className='pcap'+(a.cap?'':' empty'); cap.textContent=a.cap||'no note'; info.appendChild(cap);
     const x=document.createElement('button'); x.className='px'; x.textContent='✕'; x.title='Delete screen (its widgets stay)';
     x.onclick=ev=>{ ev.stopPropagation(); const rm=annos.splice(i,1)[0]; undoStack.push({k:'delAnno',i,a:rm}); if(sel.kind==='mark'&&sel.i===i)clearSel(); msel=[]; sync(); };
-    item.onclick=()=>{ msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.onclick=ev=>{
+      if(ev.ctrlKey||ev.metaKey){ const k='mark:'+i; seedMsel(k); msel=msel.includes(k)?msel.filter(z=>z!==k):[...msel,k]; refreshPieces(); render(); if(msel.length>=2)mselHint(); return; }
+      msel=[]; setTool('move'); selectMark(i); centerOnAnno(a); render(); refreshPieces(); };
+    item.className+=(msel.includes('mark:'+i)?' msel':'');
     item.append(dot,info,x); return item;
   }
   // raw screenshots/images first — the evidence layer
@@ -1376,12 +1379,26 @@ canvas.addEventListener('pointerdown',e=>{
     }
     const i=hitSlice(p);
     if(i>=0){
+      if(!e.altKey&&msel.length>=2&&msel.includes('piece:'+i)){ drag=mkMselDrag(msel,p); return; }
+      if(!e.altKey&&slices[i].g){
+        const keys=groupKeys(slices[i].g);
+        if(keys.length>=2){ selectPiece(i); drag=mkMselDrag(keys,p); render(); refreshPieces(); return; }
+      }
       const s=slices.splice(i,1)[0]; slices.push(s); const ni=slices.length-1;
       selectPiece(ni);
       drag={kind:'moveSlice',i:ni,dx:p.x-s.x,dy:p.y-s.y};
     }else{
       const ai=hitAnno(p);
       if(ai>=0){
+        /* member of the multi-select? drag them all (Alt = just this one) */
+        if(!e.altKey&&msel.length>=2&&msel.includes('mark:'+ai)){
+          drag=mkMselDrag(msel,p); return;
+        }
+        /* member of a group? the whole group travels (Alt = just this one) */
+        if(!e.altKey&&annos[ai].g){
+          const keys=groupKeys(annos[ai].g);
+          if(keys.length>=2){ selectMark(ai); drag=mkMselDrag(keys,p); render(); refreshPieces(); return; }
+        }
         selectMark(ai);
         drag={kind:'moveAnno',i:ai,start:p,orig:{...annos[ai]},moved:false};
         render(); refreshPieces(); return;
@@ -1471,6 +1488,15 @@ canvas.addEventListener('pointermove',e=>{
       else{ a.x1=drag.orig.x1+dx; a.y1=drag.orig.y1+dy; a.x2=drag.orig.x2+dx; a.y2=drag.orig.y2+dy; }
     }
   }
+  else if(drag.kind==='moveMsel'){
+    const dx=p.x-drag.start.x, dy=p.y-drag.start.y;
+    if(!drag.moved&&Math.hypot(dx,dy)>3/view.s){ drag.moved=true;
+      undoStack.push({k:'boardSnap',slices:drag.snap.slices,annos:drag.snap.annos,groups:drag.snap.groups}); }
+    if(drag.moved){
+      const sdx=snapv(drag.origs[0].x+dx)-drag.origs[0].x, sdy=snapv(drag.origs[0].y+dy)-drag.origs[0].y;
+      drag.origs.forEach(o=>{ const b=itemBox(o.key); if(b)b.move(o.x+sdx,o.y+sdy); });
+    }
+  }
   else if(drag.kind==='moveFrame'){
     const dx=p.x-drag.start.x, dy=p.y-drag.start.y;
     if(!drag.moved&&Math.hypot(dx,dy)>3/view.s){ drag.moved=true;
@@ -1523,7 +1549,7 @@ canvas.addEventListener('pointerup',()=>{
         else if(a.t==='text')b={x:a.x,y:a.y-a.size,w:(a.text||'').length*a.size*0.55,h:a.size*1.3};
         if(b&&ix(b))hit.push('mark:'+i);
       });
-      if(hit.length>=2){ msel=hit; clearSel(); }
+      if(hit.length>=2){ msel=hit; clearSel(); mselHint(); }
       else if(hit.length===1){ const [k,i]=hit[0].split(':'); msel=[]; k==='piece'?selectPiece(+i):selectMark(+i); }
       else msel=[];
     }
@@ -1531,6 +1557,7 @@ canvas.addEventListener('pointerup',()=>{
   }
   if(d.kind==='moveImg'){ sync(); return; }
   if(d.kind==='resizeImg'){ sync(); return; }
+  if(d.kind==='moveMsel'){ sync(); return; }
   if(d.kind==='moveFrame'){ sync(); return; }   // undo snapshot already pushed on first movement
   if(d.kind==='wdraw'){
     if(pendingKind&&pendingKind.indexOf('frame:')===0){
@@ -1677,6 +1704,22 @@ function mkFrameDrag(fi,p){
     morig:mem.annos.map(i=>JSON.parse(JSON.stringify(annos[i]))),
     sorig:mem.slices.map(i=>({x:slices[i].x,y:slices[i].y})),
     gorig:glue.map(gl=>({x1:annos[gl.i].x1,y1:annos[gl.i].y1,x2:annos[gl.i].x2,y2:annos[gl.i].y2}))};
+}
+/* multi-select / group rigid drag: drag any member, everyone comes along (Alt = solo) */
+function mkMselDrag(keys,p){
+  return {kind:'moveMsel',start:p,moved:false,keys:keys.slice(),
+    snap:{slices:JSON.parse(JSON.stringify(slices)),annos:JSON.parse(JSON.stringify(annos)),groups:JSON.parse(JSON.stringify(groups))},
+    origs:keys.map(k=>{ const b=itemBox(k); return b?{key:k,x:b.x,y:b.y}:null; }).filter(Boolean)};
+}
+function groupKeys(gid){
+  const out=[];
+  annos.forEach((a,i)=>{ if(a.g===gid)out.push('mark:'+i); });
+  slices.forEach((s,i)=>{ if(s.g===gid)out.push('piece:'+i); });
+  return out;
+}
+function mselHint(){
+  if(window.__mselHint)return; window.__mselHint=1;
+  toast(msel.length+' selected \u2014 drag any one and they move together. Group them in Items. Esc clears.');
 }
 /* reply-back v2: dashed thread from an AI mark to the mark it answers (re:"<id>") */
 function drawAIThreads(g){
@@ -1968,7 +2011,7 @@ $('btnGroup').onclick=()=>{
     boardSnap();
     msel.forEach(key=>{
       const [kind,idx]=key.split(':'); const i=+idx;
-      if(kind==='mark'&&annos[i]){ annos[i].g=gr.id; if(annos[i].t!=='widget')annos[i].c=gr.c; }
+      if(kind==='mark'&&annos[i]&&annos[i].t!=='frame'){ annos[i].g=gr.id; if(annos[i].t!=='widget')annos[i].c=gr.c; }
       if(kind==='piece'&&slices[i]) slices[i].g=gr.id;
     });
     msel=[];
@@ -1982,7 +2025,7 @@ $('btnGroup').onclick=()=>{
   let gc='#e0342b';
   msel.forEach(key=>{
     const [kind,idx]=key.split(':'); const i=+idx;
-    if(kind==='mark'&&annos[i]){ annos[i].g=gid; if(annos[i].t!=='widget')gc=annos[i].c||gc; }
+    if(kind==='mark'&&annos[i]&&annos[i].t!=='frame'){ annos[i].g=gid; if(annos[i].t!=='widget')gc=annos[i].c||gc; }
     if(kind==='piece'&&slices[i]) slices[i].g=gid;
   });
   groups.push({id:gid,cap:'',c:gc});
